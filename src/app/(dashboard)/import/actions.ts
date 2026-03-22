@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { notifyAll } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 
 export async function createImportsBulk(dossiers: any[]) {
@@ -51,6 +52,13 @@ export async function createImportsBulk(dossiers: any[]) {
       }
     })
   }
+
+  // Notify users
+  await notifyAll(
+    'Importation de dossiers',
+    `${dossiers.length} dossiers ont été importés avec succès.`,
+    'DOSSIER_CREE' as any
+  )
 
   revalidatePath('/dossiers')
 }

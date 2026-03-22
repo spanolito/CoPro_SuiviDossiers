@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { notifyAll } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
@@ -52,6 +53,21 @@ export async function updateDossierStatus(dossierId: string, newStatus: string) 
       resume: `Statut changé vers ${newStatus}`,
     }
   })
+
+  // Notify users
+  if (newStatus === 'EN_COURS') {
+    await notifyAll(
+      `Dossier en cours : ${dossier.titre}`,
+      `Le dossier "${dossier.titre}" est désormais en cours de traitement.`,
+      'DOSSIER_EN_COURS' as any
+    )
+  } else if (newStatus === 'CLOTURE') {
+    await notifyAll(
+      `Dossier résolu : ${dossier.titre}`,
+      `Le dossier "${dossier.titre}" a été clôturé.`,
+      'DOSSIER_RESOLU' as any
+    )
+  }
 
   revalidatePath(`/dossiers/${dossierId}`)
 }

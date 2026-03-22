@@ -1,6 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { notifyAdmins } from '@/lib/notifications'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
@@ -118,6 +119,13 @@ export async function adminResetPassword(targetUserId: string, temporaryPassword
       description: `Réinitialisation du mot de passe de l'utilisateur ${targetUserId}`,
     }
   })
+
+  // Notify admin
+  await notifyAdmins(
+    `Réinitialisation MDP`,
+    `Le mot de passe de l'utilisateur ${targetUserId} a été réinitialisé par ${payload.id}.`,
+    'LOG_SYSTEME' as any
+  )
 
   return { success: true }
 }

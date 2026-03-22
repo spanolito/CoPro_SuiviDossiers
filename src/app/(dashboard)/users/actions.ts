@@ -3,6 +3,7 @@
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { notifyAdmins } from '@/lib/notifications'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
@@ -101,6 +102,13 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
         description: `Modification de l'utilisateur ${payload.userId} (${Object.keys(updates).join(', ')})`,
       }
     })
+
+    // Notify admin
+    await notifyAdmins(
+      `Modification Utilisateur`,
+      `L'utilisateur ${payload.userId} a été modifié par ${admin.id}.`,
+      'LOG_SYSTEME' as any
+    )
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { error: 'Cet email est déjà utilisé.' }

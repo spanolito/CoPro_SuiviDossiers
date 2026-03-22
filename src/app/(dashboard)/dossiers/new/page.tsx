@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { notifyAll } from '@/lib/notifications'
 import styles from '../dossiers.module.css'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -69,6 +70,13 @@ export default async function NewDossierPage() {
         dateRealisation: new Date(),
       }
     })
+
+    // Notify users
+    await notifyAll(
+      `Nouveau dossier : ${titre}`,
+      `Un nouveau dossier "${titre}" a été ouvert (${reference}).`,
+      'DOSSIER_CREE'
+    )
 
     redirect(`/dossiers/${newDossier.id}`)
   }

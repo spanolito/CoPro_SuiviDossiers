@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { signToken } from '@/lib/auth'
+import { notifyAdmins } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,6 +70,13 @@ export async function POST(request: NextRequest) {
         description: `Connexion réussie de ${user.nomAffiche}`,
       }
     })
+
+    // Notify admin
+    await notifyAdmins(
+      `Connexion: ${user.nomAffiche}`,
+      `L'utilisateur ${user.nomAffiche} s'est connecté.`,
+      'LOG_SYSTEME' as any
+    )
     
 
     return response
