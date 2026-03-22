@@ -26,7 +26,8 @@ export default async function DossierDetailPage({
     where: { id },
     include: {
       category: true,
-      assignee: true,
+      responsableCS: true,
+      intervenant: true,
       etapes: { orderBy: { date: 'desc' } },
       documents: { orderBy: { createdAt: 'desc' } },
       commentaires: { orderBy: { createdAt: 'desc' }, include: { author: true } }
@@ -149,7 +150,7 @@ export default async function DossierDetailPage({
         dossierId={id} 
         currentStatus={dossier.statut} 
         isAdmin={isAdmin} 
-        hasAssignee={!!dossier.assigneeId} 
+        hasResponsables={!!dossier.responsableCSId && !!dossier.intervenantId} 
         finalDecision={dossier.finalDecision} 
       />
 
@@ -178,9 +179,15 @@ export default async function DossierDetailPage({
                 </span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Responsable</span>
+                <span className={styles.infoLabel}>Responsable CS</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color="var(--text-secondary)" /> {dossier.assignee?.name || 'Non assigné'}
+                  <User size={16} color="var(--text-secondary)" /> {dossier.responsableCS?.name || 'Non assigné'}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Intervenant (Action)</span>
+                <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <User size={16} color="var(--text-secondary)" /> {dossier.intervenant?.nom || 'Non assigné'} {dossier.intervenant?.type ? `(${dossier.intervenant.type})` : ''}
                 </span>
               </div>
             </div>

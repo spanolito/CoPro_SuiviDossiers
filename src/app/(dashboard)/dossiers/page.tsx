@@ -35,7 +35,7 @@ export default async function DossiersListPage({
 
   const dossiers = await prisma.dossier.findMany({
     where: whereClause,
-    include: { category: true, assignee: true },
+    include: { category: true, responsableCS: true, intervenant: true },
     orderBy: { updatedAt: 'desc' }
   })
 
@@ -120,7 +120,7 @@ export default async function DossiersListPage({
               <th>Catégorie</th>
               <th>Statut</th>
               <th>Priorité</th>
-              <th>Responsable</th>
+              <th>CS / Intervenant</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -150,7 +150,10 @@ export default async function DossiersListPage({
                     {d.priorite}
                   </span>
                 </td>
-                <td>{d.assignee?.name || '-'}</td>
+                <td>
+                  <div style={{ fontSize: 13 }}>{d.responsableCS?.name || '-'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{d.intervenant?.nom || '-'}</div>
+                </td>
                 <td>
                   <Link href={`/dossiers/${d.id}`} className={`btn btn-outline ${styles.actionBtn}`}>
                     Voir

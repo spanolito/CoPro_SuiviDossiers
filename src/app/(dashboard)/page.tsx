@@ -7,7 +7,7 @@ const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
 export default async function DashboardPage() {
   const dossiers = await prisma.dossier.findMany({
-    include: { assignee: true, category: true }
+    include: { responsableCS: true, intervenant: true, category: true }
   })
 
   // Metrics
@@ -18,17 +18,25 @@ export default async function DashboardPage() {
   const countBlocked = dossiers.filter(d => d.statut === 'BLOQUE').length
 
   // Todo Items Lists
-  const unassigned = dossiers.filter(d => !d.assigneeId && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
+  const unassigned = dossiers.filter(d => (!d.responsableCSId || !d.intervenantId) && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
   const blocked = dossiers.filter(d => d.statut === 'BLOQUE')
   const toValidate = dossiers.filter(d => d.statut === 'A_VALIDER')
 
   // Assignee Breakdown
   const users = await prisma.user.findMany({
-    include: { dossiersAssigned: true }
+    include: { dossiersSuivis: true }
   })
   const staffBreakdown = users.map(u => ({
     name: u.name,
-    count: u.dossiersAssigned.filter(d => d.statut !== 'CLOTURE').length
+    count: u.dossiersSuivis.filter(d => d.statut !== 'CLOTURE').length
+  })).sort((a,b) => b.count - a.count)
+
+  const intervenants = await prisma.intervenant.findMany({
+    include: { dossiers: true }
+  })
+  const intervenantsBreakdown = intervenants.map(i => ({
+    name: i.nom,
+    count: i.dossiers.filter(d => d.statut !== 'CLOTURE').length
   })).sort((a,b) => b.count - a.count)
 
   // Recent Streams
@@ -121,7 +129,7 @@ export default async function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* 3. Répartition Responsables */}
           <div className={styles.widget}>
-            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Répartition des dossiers</div>
+            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Suivi CS</div>
             <div className={styles.assigneeList}>
               {staffBreakdown.map((staff, index) => (
                 <div key={index} className={styles.assigneeItem}>
@@ -137,7 +145,29 @@ export default async function DashboardPage() {
                   <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
                 </div>
-                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.assigneeId).length}</span>
+                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.responsableCSId).length}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.widget}>
+            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Intervenants Actifs</div>
+            <div className={styles.assigneeList}>
+              {intervenantsBreakdown.map((intv, index) => (
+                <div key={index} className={styles.assigneeItem}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className={styles.avatar} style={{ background: '#e9fac8', color: '#5c940d' }}>{getInitials(intv.name)}</div>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{intv.name}</span>
+                  </div>
+                  <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', fontSize: 12 }}>{intv.count}</span>
+                </div>
+              ))}
+              <div className={styles.assigneeItem}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
+                </div>
+                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.intervenantId).length}</span>
               </div>
             </div>
           </div>

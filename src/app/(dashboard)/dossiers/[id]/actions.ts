@@ -50,13 +50,13 @@ export async function archiveDossier(id: string, archive: boolean) {
   })
 
   // Create a real notification
-  const dossier = await prisma.dossier.findUnique({ where: { id }, select: { assigneeId: true, title: true }})
-  if (dossier?.assigneeId && dossier.assigneeId !== admin.id) {
+  const dossier = await prisma.dossier.findUnique({ where: { id }, select: { responsableCSId: true, title: true }})
+  if (dossier?.responsableCSId && dossier.responsableCSId !== admin.id) {
     await prisma.notification.create({
       data: {
         title: archive ? 'Dossier archivé' : 'Dossier désarchivé',
         message: `Le dossier "${dossier.title}" a été ${archive ? 'archivé' : 'désarchivé'} par l'administrateur.`,
-        userId: dossier.assigneeId
+        userId: dossier.responsableCSId
       }
     })
   }
@@ -113,6 +113,12 @@ export async function updateDossierStatus(id: string, newStatus: string) {
   if (newStatus === StatutDossier.A_VALIDER) {
     if (!dossier.finalDecision) {
       throw new Error('Une décision finale est requise avant de passer "À valider". Vous devez finaliser le dossier.')
+    }
+  }
+  
+  if (newStatus === StatutDossier.AFFECTE || newStatus === StatutDossier.EN_COURS) {
+    if (!dossier.responsableCSId || !dossier.intervenantId) {
+      throw new Error("L'avancement du dossier est bloqué : vous devez définir un Responsable CS ET un Responsable d'action (Intervenant).")
     }
   }
 

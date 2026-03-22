@@ -27,7 +27,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  dossiersAssigned Dossier[] @relation("Assignee")
+  dossiersSuivis   Dossier[] @relation("ResponsableCS")
   commentaires     Commentaire[]
   activityLogs     ActivityLog[]
   archivedDossiers Dossier[] @relation("ArchivedDossiers")
@@ -59,8 +59,11 @@ model Dossier {
   categoryId        String
   category          Category    @relation(fields: [categoryId], references: [id])
   
-  assigneeId      String?
-  assignee          User?       @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  responsableCSId   String?
+  responsableCS     User?       @relation("ResponsableCS", fields: [responsableCSId], references: [id], onDelete: SetNull)
+  
+  intervenantId     String?
+  intervenant       Intervenant? @relation(fields: [intervenantId], references: [id], onDelete: SetNull)
   
   // Specific Heating Fields
   typeInstallation  String?
@@ -149,3 +152,17 @@ model Notification {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model Intervenant {
+  id        String   @id @default(cuid())
+  nom       String
+  type      String   // Syndic, Entreprise, Assurance, Copropriétaire, Autre
+  email     String?
+  telephone String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dossiers  Dossier[]
+}
+

@@ -22,7 +22,7 @@ export async function createImportsBulk(dossiers: any[]) {
         statut: d.statut,
         priorite: d.priorite,
         categoryId: d.categoryId,
-        assigneeId: admin?.id || null, // default assign to admin
+        responsableCSId: admin?.id || null, // default assign to admin
         etapes: {
           create: {
             title: 'Import depuis compte rendu',

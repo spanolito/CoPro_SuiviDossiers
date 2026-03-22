@@ -17,6 +17,7 @@ export default async function EditDossierPage({
   
   const categories = await prisma.category.findMany()
   const users = await prisma.user.findMany({ select: { id: true, name: true } })
+  const intervenants = await prisma.intervenant.findMany({ orderBy: { nom: 'asc' } })
 
   // Server Action
   async function updateDossier(formData: FormData) {
@@ -32,7 +33,8 @@ export default async function EditDossierPage({
     const description = formData.get('description') as string
     const building = formData.get('building') as string
     const lotZone = formData.get('lotZone') as string
-    const assigneeId = formData.get('assigneeId') as string
+    const responsableCSId = formData.get('responsableCSId') as string
+    const intervenantId = formData.get('intervenantId') as string
     const typeInstallation = formData.get('typeInstallation') as string
     const prestataire = formData.get('prestataire') as string
 
@@ -46,7 +48,8 @@ export default async function EditDossierPage({
         building,
         lotZone,
         categoryId,
-        assigneeId: assigneeId || null,
+        responsableCSId: responsableCSId || null,
+        intervenantId: intervenantId || null,
         typeInstallation,
         prestataire,
       }
@@ -114,11 +117,18 @@ export default async function EditDossierPage({
             <label htmlFor="lotZone">Lot / Zone</label>
             <input type="text" id="lotZone" name="lotZone" className="form-control" defaultValue={dossier.lotZone || ''} />
           </div>
-          <div className={`form-group ${styles.formGroupFull}`}>
-            <label htmlFor="assigneeId">Responsable (assignation)</label>
-            <select id="assigneeId" name="assigneeId" className="form-control" defaultValue={dossier.assigneeId || ''}>
-              <option value="">Non assigné</option>
+          <div className="form-group">
+            <label htmlFor="responsableCSId">Responsable CS *</label>
+            <select id="responsableCSId" name="responsableCSId" className="form-control" defaultValue={dossier.responsableCSId || ''} required>
+              <option value="">Sélectionner</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="intervenantId">Responsable de l'action *</label>
+            <select id="intervenantId" name="intervenantId" className="form-control" defaultValue={dossier.intervenantId || ''} required>
+              <option value="">Sélectionner</option>
+              {intervenants.map(i => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
             </select>
           </div>
         </div>

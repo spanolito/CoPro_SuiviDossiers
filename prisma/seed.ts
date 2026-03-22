@@ -57,6 +57,15 @@ async function main() {
   const catAG = await prisma.category.upsert({ where: { name: 'Décision AG' }, update: {}, create: { name: 'Décision AG' } })
   const catFacade = await prisma.category.upsert({ where: { name: 'Façade' }, update: {}, create: { name: 'Façade' } })
 
+  // Intervenants
+  const intPichet = await prisma.intervenant.create({ data: { nom: 'Syndic (Pichet)', type: 'Syndic' } })
+  const intEngie = await prisma.intervenant.create({ data: { nom: 'ENGIE', type: 'Entreprise' } })
+  const intSapitec = await prisma.intervenant.create({ data: { nom: 'SAPITEC', type: 'Entreprise' } })
+  const intHydro = await prisma.intervenant.create({ data: { nom: 'HydroSolutions', type: 'Entreprise' } })
+  const intCopro = await prisma.intervenant.create({ data: { nom: 'Copropriétaire', type: 'Copropriétaire' } })
+  const intAutre = await prisma.intervenant.create({ data: { nom: 'Autre', type: 'Autre' } })
+
+
   // Dossiers
   // 1. Infiltration garage
   await prisma.dossier.upsert({
@@ -71,7 +80,8 @@ async function main() {
       building: 'Bâtiment A',
       lotZone: 'Sous-sol / Garage',
       categoryId: catInfiltration.id,
-      assigneeId: adminUser.id,
+      responsableCSId: adminUser.id,
+      intervenantId: intPichet.id,
       etapes: {
         create: [
           { title: 'Signalement reçu', statut: 'terminée', comment: 'Mail du copropriétaire.', date: new Date('2026-03-01T10:00:00Z') },
@@ -94,7 +104,8 @@ async function main() {
       building: 'Bâtiment Principal',
       lotZone: 'Toit terrasse',
       categoryId: catToiture.id,
-      assigneeId: adminUser.id,
+      responsableCSId: adminUser.id,
+      intervenantId: intSapitec.id,
     }
   })
 
@@ -111,7 +122,7 @@ async function main() {
       building: 'Bâtiment B',
       lotZone: 'Appartement 12',
       categoryId: catLitige.id,
-      assigneeId: conseilUser.id,
+      responsableCSId: conseilUser.id,
     }
   })
 
@@ -126,7 +137,7 @@ async function main() {
       statut: 'nouveau',
       priorite: 'basse',
       categoryId: catFacade.id,
-      assigneeId: adminUser.id,
+      responsableCSId: adminUser.id,
     }
   })
 
@@ -176,7 +187,8 @@ async function main() {
       statut: 'urgent_intervention',
       priorite: 'urgente',
       categoryId: catChauffage.id,
-      assigneeId: adminUser.id,
+      responsableCSId: adminUser.id,
+      intervenantId: intEngie.id,
       typeInstallation: 'Chaudière Gaz',
       prestataire: 'ChauffagePro Services',
       contratMaintenance: 'P2',

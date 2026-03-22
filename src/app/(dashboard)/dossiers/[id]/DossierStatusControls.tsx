@@ -9,11 +9,11 @@ interface Props {
   dossierId: string
   currentStatus: string
   isAdmin: boolean
-  hasAssignee: boolean
+  hasResponsables: boolean
   finalDecision?: string | null
 }
 
-export default function DossierStatusControls({ dossierId, currentStatus, isAdmin, hasAssignee, finalDecision }: Props) {
+export default function DossierStatusControls({ dossierId, currentStatus, isAdmin, hasResponsables, finalDecision }: Props) {
   const [loading, setLoading] = useState(false)
   const [showFinalizeModal, setShowFinalizeModal] = useState(false)
   const [decisionText, setDecisionText] = useState('')
@@ -32,7 +32,7 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
     setLoading(true)
     try {
       if (currentStatus === 'ENREGISTRE') {
-         if (!hasAssignee) { alert("Veuillez d'abord affecter un responsable."); }
+         if (!hasResponsables) { alert("Veuillez d'abord affecter un Responsable CS et un Responsable d'action (Intervenant) via le bouton Éditer."); }
          else await updateDossierStatus(dossierId, 'AFFECTE')
       } else if (currentStatus === 'AFFECTE') {
         await updateDossierStatus(dossierId, 'EN_COURS')

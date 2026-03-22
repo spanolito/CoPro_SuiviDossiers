@@ -77,8 +77,8 @@ export default function UsersClient({ users, roles, currentAdminId }: { users: U
                   >
                     {roles.map(r => {
                       let displayName = r.name
-                      if (r.name === 'Admin') displayName = 'Président du CS'
-                      else if (r.name === 'Conseil syndical') displayName = 'Membre du CS'
+                      if (r.name === 'Admin') displayName = 'Président du Conseil Syndical'
+                      else if (r.name === 'Conseil syndical') displayName = 'Membre du Conseil Syndical'
                       else if (r.name === 'Read-only') displayName = 'Copropriétaire'
                       
                       return <option key={r.id} value={r.id}>{displayName}</option>
