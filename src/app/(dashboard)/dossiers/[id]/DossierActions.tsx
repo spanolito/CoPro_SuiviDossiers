@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Trash2, Archive, AlertTriangle, RefreshCcw } from 'lucide-react'
-import { archiveDossier, deleteDossiers } from './actions'
+import { archiveDossier, deleteDossiers } from '@/app/(dashboard)/dossiers/[id]/actions'
 import styles from './dossier-detail.module.css'
 
 interface DossierActionsProps {
