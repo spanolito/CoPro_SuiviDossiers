@@ -75,9 +75,14 @@ export default function UsersClient({ users, roles, currentAdminId }: { users: U
                     className="form-control"
                     style={{ padding: '4px 8px', fontSize: 13, minWidth: 140 }}
                   >
-                    {roles.map(r => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
+                    {roles.map(r => {
+                      let displayName = r.name
+                      if (r.name === 'Admin') displayName = 'Président du CS'
+                      else if (r.name === 'Conseil syndical') displayName = 'Membre du CS'
+                      else if (r.name === 'Read-only') displayName = 'Copropriétaire'
+                      
+                      return <option key={r.id} value={r.id}>{displayName}</option>
+                    })}
                   </select>
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>

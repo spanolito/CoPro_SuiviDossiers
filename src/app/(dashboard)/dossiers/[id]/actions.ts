@@ -73,6 +73,11 @@ export async function deleteDossiers(id: string) {
 }
 
 export async function updateDossierStatus(id: string, newStatus: string) {
+  const validStatuses = ['ENREGISTRE', 'AFFECTE', 'EN_COURS', 'A_VALIDER', 'CLOTURE', 'BLOQUE', 'ARCHIVE']
+  if (!validStatuses.includes(newStatus)) {
+    throw new Error('Statut invalide.')
+  }
+
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   if (!token) throw new Error('Non authentifié')

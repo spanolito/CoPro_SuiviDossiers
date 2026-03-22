@@ -31,7 +31,7 @@ export default async function NewDossierPage() {
         reference: ref,
         title,
         description,
-        statut: 'nouveau',
+        statut: 'ENREGISTRE',
         priorite,
         building,
         lotZone,

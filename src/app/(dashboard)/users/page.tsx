@@ -31,10 +31,6 @@ export default async function UsersPage() {
           <h2>Gestion des Utilisateurs</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Gérez les accès et les rôles de la copropriété.</p>
         </div>
-        <button className="btn btn-primary" style={{ display: 'none' }}>
-          <Plus size={18} />
-          Ajouter un utilisateur
-        </button>
       </div>
 
       <UsersClient users={users} roles={roles} currentAdminId={payload.id as string} />

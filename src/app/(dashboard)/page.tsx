@@ -39,10 +39,10 @@ export default async function DashboardPage() {
 
   const formatTime = (date: Date) => {
     const min = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000)
-    if (min < 60) return `${min}m ago`
+    if (min < 60) return `il y a ${min} m`
     const hr = Math.floor(min / 60)
-    if (hr < 24) return `${hr}h ago`
-    return new Date(date).toLocaleDateString()
+    if (hr < 24) return `il y a ${hr} h`
+    return new Date(date).toLocaleDateString('fr-FR')
   }
 
   return (

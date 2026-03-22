@@ -8,7 +8,7 @@ interface HeaderProps {
   userRole?: string
 }
 
-export default function Header({ title, userName = 'Utilisateur', userRole = 'Conseil syndical' }: HeaderProps) {
+export default function Header({ title, userName = 'Utilisateur', userRole = 'Membre du Conseil Syndical' }: HeaderProps) {
   const initials = userName.substring(0, 2).toUpperCase()
 
   return (

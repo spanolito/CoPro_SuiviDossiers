@@ -24,6 +24,10 @@ export default async function EditDossierPage({
     const categoryId = formData.get('categoryId') as string
     const priorite = formData.get('priorite') as string
     const statut = formData.get('statut') as string
+    const validStatuses = ['ENREGISTRE', 'AFFECTE', 'EN_COURS', 'A_VALIDER', 'CLOTURE', 'BLOQUE', 'ARCHIVE']
+    if (!validStatuses.includes(statut)) {
+      throw new Error('Statut invalide.')
+    }
     const description = formData.get('description') as string
     const building = formData.get('building') as string
     const lotZone = formData.get('lotZone') as string

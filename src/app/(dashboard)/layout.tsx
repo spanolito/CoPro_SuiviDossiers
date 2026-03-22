@@ -1,15 +1,24 @@
 import Sidebar from '@/components/layout/Sidebar'
 import { headers } from 'next/headers'
 import Header from '@/components/layout/Header'
+import { cookies } from 'next/headers'
+import { verifyToken } from '@/lib/auth'
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const headersList = await headers()
-  const userName = 'Oscar Andujar' // Hardcoded for now, normally fetched from DB or Token
-  const userRole = headersList.get('x-user-role') || 'Admin'
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  const payload = token ? await verifyToken(token) : null
+
+  const userName = (payload?.name as string) || 'Utilisateur'
+  let rawRole = (payload?.role as string) || 'Read-only'
+  
+  let userRole = 'Copropriétaire'
+  if (rawRole === 'Admin') userRole = 'Président du CS'
+  else if (rawRole === 'Conseil syndical') userRole = 'Membre du CS'
 
   return (
     <>
