@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id    String @id @default(cuid())
+  name  String @unique // "Admin", "Conseil syndical", "Read-only"
+  users User[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  dossiersAssigned Dossier[] @relation("Assignee")
+  commentaires     Commentaire[]
+  activityLogs     ActivityLog[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  dossiers Dossier[]
+}
+
+model Dossier {
+  id                String      @id @default(cuid())
+  reference         String      @unique
+  title             String
+  description       String
+  statut            String      // e.g. nouveau, en_analyse, resolu, cloture
+  priorite          String      // e.g. basse, moyenne, haute, urgente
+  amount            Float?
+
+  // Localisation
+  building          String?
+  lotZone           String?
+
+  // Relations
+  categoryId        String
+  category          Category    @relation(fields: [categoryId], references: [id])
+  
+  assigneeId      String?
+  assignee          User?       @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  
+  // Specific Heating Fields
+  typeInstallation  String?
+  prestataire       String?
+  contratMaintenance String?
+  lastMaintenance   DateTime?
+  nextDeadline      DateTime?
+
+  // Dates
+  dueDate           DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  etapes            Etape[]
+  commentaires      Commentaire[]
+  documents         Document[]
+}
+
+model Etape {
+  id          String   @id @default(cuid())
+  title       String
+  statut      String
+  comment     String?
+  date        DateTime @default(now())
+  
+  dossierId   String
+  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+}
+
+model Commentaire {
+  id          String   @id @default(cuid())
+  content     String
+  createdAt   DateTime @default(now())
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  dossierId   String
+  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  url         String
+  description String?
+  createdAt   DateTime @default(now())
+  
+  dossierId   String
+  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String   // e.g. "CREATED", "UPDATED_STATUS"
+  targetType  String   // e.g. "Dossier", "Etape", "Document"
+  targetId    String   
+  createdAt   DateTime @default(now())
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}

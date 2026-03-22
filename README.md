@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CoPro Master - Suivi de Dossiers Copropriété
 
-## Getting Started
+Application Web complète de gestion et de suivi des dossiers de copropriété (Infiltrations, Chauffage, Ascenseur, etc.).
 
-First, run the development server:
+## 🚀 Lancement Local Rapide
 
+Cette application a été développée avec **Next.js (App Router)**, **Prisma** et **SQLite** pour être la plus simple possible à installer et lancer.
+
+### 1. Prérequis
+- Node.js (version 18+)
+- npm installé
+
+### 2. Installation des dépendances
+Ouvrez votre terminal à la racine de l'application (`CoPro_SuiviDossiers`) et lancez :
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Base de données
+La base de données SQLite (`dev.db`) est déjà configurée. 
+Pour recréer et insérer les données de démonstration (7 dossiers pré-remplis) :
+```bash
+npx prisma db push
+npx tsx prisma/seed.ts
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Démarrer le serveur
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+L'application est maintenant disponible sur [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔐 Identifiants de Démonstration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*   **Administrateur**
+    *   Email : `admin@copro.com`
+    *   Mot de passe : `password123`
+*   **Conseil Syndical**
+    *   Email : `conseil@copro.com`
+    *   Mot de passe : `password123`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📦 Déploiement
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cette application peut être déployée très facilement sur des plateformes comme Vercel, Railway ou un VPS classique (avec Docker ou PM2).
+Comme la base de données est un fichier SQLite, il convient d'utiliser un Volume Persistant en production, ou de migrer rapidement vers PostgreSQL (en changeant `provider = "postgresql"` dans `schema.prisma`).
