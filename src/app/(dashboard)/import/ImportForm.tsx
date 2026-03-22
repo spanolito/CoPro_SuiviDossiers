@@ -20,10 +20,10 @@ export default function ImportForm({ categories }: { categories: any[] }) {
       const lower = block.toLowerCase()
       
       // Heuristic: Statut
-      let statut = 'nouveau'
-      if (lower.includes('attente')) statut = 'en_attente_syndic'
-      else if (lower.includes('devis validé') || lower.includes('en cours')) statut = 'en_cours'
-      else if (lower.includes('projet abandonné') || lower.includes('clos') || lower.includes('terminé')) statut = 'cloture'
+      let statut = 'ENREGISTRE'
+      if (lower.includes('attente')) statut = 'AFFECTE'
+      else if (lower.includes('devis validé') || lower.includes('en cours')) statut = 'EN_COURS'
+      else if (lower.includes('projet abandonné') || lower.includes('clos') || lower.includes('terminé')) statut = 'CLOTURE'
       
       // Heuristic: Priorité
       let priorite = 'moyenne'
@@ -126,16 +126,13 @@ export default function ImportForm({ categories }: { categories: any[] }) {
                   <div className="form-group">
                     <label>Statut estimé</label>
                     <select className="form-control" value={p.statut} onChange={e => updateProposal(p.id, 'statut', e.target.value)}>
-                      <option value="nouveau">Nouveau</option>
-                      <option value="en_analyse">En Analyse</option>
-                      <option value="en_attente_devis">Attente Devis</option>
-                      <option value="en_attente_syndic">Attente Syndic</option>
-                      <option value="en_cours">En Cours d'intervention</option>
-                      <option value="urgent_intervention">Urgent</option>
-                      <option value="en_suivi">En Suivi</option>
-                      <option value="bloque">Bloqué</option>
-                      <option value="resolu">Résolu</option>
-                      <option value="cloture">Clôturé</option>
+                      <option value="ENREGISTRE">Enregistré</option>
+                      <option value="AFFECTE">Affecté</option>
+                      <option value="EN_COURS">En Cours</option>
+                      <option value="A_VALIDER">À Valider</option>
+                      <option value="CLOTURE">Clôturé</option>
+                      <option value="BLOQUE">Bloqué</option>
+                      <option value="ARCHIVE">Archivé</option>
                     </select>
                   </div>
 

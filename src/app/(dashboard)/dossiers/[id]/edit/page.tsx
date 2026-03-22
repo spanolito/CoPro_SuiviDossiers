@@ -3,6 +3,7 @@ import styles from '../../new/new-dossier.module.css' // Reusing the same CSS
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
+import { StatutDossier } from '../actions'
 
 export default async function EditDossierPage({
   params,
@@ -24,7 +25,7 @@ export default async function EditDossierPage({
     const categoryId = formData.get('categoryId') as string
     const priorite = formData.get('priorite') as string
     const statut = formData.get('statut') as string
-    const validStatuses = ['ENREGISTRE', 'AFFECTE', 'EN_COURS', 'A_VALIDER', 'CLOTURE', 'BLOQUE', 'ARCHIVE']
+    const validStatuses = Object.values(StatutDossier) as string[]
     if (!validStatuses.includes(statut)) {
       throw new Error('Statut invalide.')
     }

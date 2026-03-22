@@ -6,6 +6,16 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
+export enum StatutDossier {
+  ENREGISTRE = 'ENREGISTRE',
+  AFFECTE = 'AFFECTE',
+  EN_COURS = 'EN_COURS',
+  A_VALIDER = 'A_VALIDER',
+  CLOTURE = 'CLOTURE',
+  BLOQUE = 'BLOQUE',
+  ARCHIVE = 'ARCHIVE'
+}
+
 async function getAdminUser() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
@@ -73,7 +83,7 @@ export async function deleteDossiers(id: string) {
 }
 
 export async function updateDossierStatus(id: string, newStatus: string) {
-  const validStatuses = ['ENREGISTRE', 'AFFECTE', 'EN_COURS', 'A_VALIDER', 'CLOTURE', 'BLOQUE', 'ARCHIVE']
+  const validStatuses = Object.values(StatutDossier) as string[]
   if (!validStatuses.includes(newStatus)) {
     throw new Error('Statut invalide.')
   }
@@ -87,9 +97,23 @@ export async function updateDossierStatus(id: string, newStatus: string) {
     throw new Error('Action non autorisée')
   }
 
+  const dossier = await prisma.dossier.findUnique({ where: { id } })
+  if (!dossier) throw new Error("Dossier introuvable.")
+
   // Business Rule: only admin can CLOTURE
-  if (newStatus === 'CLOTURE' && payload?.role !== 'Admin') {
-    throw new Error('Seul un administrateur peut clôturer ce dossier.')
+  if (newStatus === StatutDossier.CLOTURE) {
+    if (payload?.role !== 'Admin') {
+      throw new Error('Seul un administrateur peut clôturer ce dossier.')
+    }
+    if (dossier.statut !== StatutDossier.A_VALIDER) {
+      throw new Error('Impossible de clôturer: le dossier doit être "À valider".')
+    }
+  }
+
+  if (newStatus === StatutDossier.A_VALIDER) {
+    if (!dossier.finalDecision) {
+      throw new Error('Une décision finale est requise avant de passer "À valider". Vous devez finaliser le dossier.')
+    }
   }
 
   await prisma.dossier.update({
@@ -120,7 +144,7 @@ export async function finalizeDossier(id: string, decision: string) {
   await prisma.dossier.update({
     where: { id },
     data: {
-      statut: 'A_VALIDER',
+      statut: StatutDossier.A_VALIDER,
       finalDecision: decision,
       finalizedAt: new Date(),
       finalizedById: payload?.id as string
@@ -142,10 +166,16 @@ export async function finalizeDossier(id: string, decision: string) {
 export async function closeDossier(id: string) {
   const admin = await getAdminUser() // Enforces Admin role
 
+  const dossier = await prisma.dossier.findUnique({ where: { id } })
+  if (!dossier) throw new Error("Dossier introuvable.")
+  if (dossier.statut !== StatutDossier.A_VALIDER) {
+    throw new Error('Impossible de clôturer : le dossier n\'est pas À VALIDER.')
+  }
+
   await prisma.dossier.update({
     where: { id },
     data: {
-      statut: 'CLOTURE',
+      statut: StatutDossier.CLOTURE,
       closedAt: new Date(),
       closedById: admin.id as string
     }
