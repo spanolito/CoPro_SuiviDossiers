@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { StatutDossier } from '../actions'
 import LocalisationClient from '@/components/dossiers/LocalisationClient'
+import AssignationClient from '@/components/dossiers/AssignationClient'
 
 export default async function EditDossierPage({
   params,
@@ -18,7 +19,7 @@ export default async function EditDossierPage({
   
   const categories = await prisma.category.findMany()
   const users = await prisma.user.findMany({ select: { id: true, name: true } })
-  const intervenants = await prisma.intervenant.findMany({ orderBy: { nom: 'asc' } })
+  const prestataires = await prisma.prestataire.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
 
   // Server Action
   async function updateDossier(formData: FormData) {
@@ -37,8 +38,19 @@ export default async function EditDossierPage({
     const localisation = formData.get('localisation') as string
     const precision = formData.get('precision') as string
     
+    const typeDossier = formData.get('typeDossier') as string
     const responsableCSId = formData.get('responsableCSId') as string
-    const intervenantId = formData.get('intervenantId') as string
+    const actionValue = formData.get('actionValue') as string
+
+    let actionUserId: string | null = null
+    let prestataireId: string | null = null
+
+    if (actionValue) {
+      const [type, id] = actionValue.split(':')
+      if (type === 'user') actionUserId = id
+      if (type === 'prestataire') prestataireId = id
+    }
+
     const typeInstallation = formData.get('typeInstallation') as string
     const prestataire = formData.get('prestataire') as string
 
@@ -53,11 +65,12 @@ export default async function EditDossierPage({
         niveau,
         localisation,
         precision,
+        typeDossier,
         categoryId,
         responsableCSId: responsableCSId || null,
-        intervenantId: intervenantId || null,
+        prestataireId: prestataireId || null,
+        actionUserId: actionUserId || null,
         typeInstallation,
-        prestataire,
       }
     })
 
@@ -121,20 +134,13 @@ export default async function EditDossierPage({
             initialLoc={dossier.localisation || ''}
             initialPrecision={dossier.precision || ''}
           />
-          <div className="form-group">
-            <label htmlFor="responsableCSId">Responsable CS *</label>
-            <select id="responsableCSId" name="responsableCSId" className="form-control" defaultValue={dossier.responsableCSId || ''} required>
-              <option value="">Sélectionner</option>
-              {users.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="intervenantId">Responsable de l'action *</label>
-            <select id="intervenantId" name="intervenantId" className="form-control" defaultValue={dossier.intervenantId || ''} required>
-              <option value="">Sélectionner</option>
-              {intervenants.map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
-            </select>
-          </div>
+          <AssignationClient 
+            users={users} 
+            prestataires={prestataires} 
+            initialTypeDossier={dossier.typeDossier || 'Autre'}
+            initialResponsableCSId={dossier.responsableCSId || ''}
+            initialActionValue={dossier.actionUserId ? `user:${dossier.actionUserId}` : dossier.prestataireId ? `prestataire:${dossier.prestataireId}` : ''}
+          />
         </div>
 
         <h2 className={styles.sectionTitle}>Spécifique Chauffage / Équipements techniques</h2>
@@ -142,10 +148,6 @@ export default async function EditDossierPage({
           <div className="form-group">
             <label htmlFor="typeInstallation">Type d'installation</label>
             <input type="text" id="typeInstallation" name="typeInstallation" className="form-control" defaultValue={dossier.typeInstallation || ''} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="prestataire">Prestataire associé</label>
-            <input type="text" id="prestataire" name="prestataire" className="form-control" defaultValue={dossier.prestataire || ''} />
           </div>
         </div>
 

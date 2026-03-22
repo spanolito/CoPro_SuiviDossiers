@@ -27,7 +27,8 @@ export default async function DossierDetailPage({
     include: {
       category: true,
       responsableCS: true,
-      intervenant: true,
+      prestataire: true,
+      actionUser: true,
       etapes: { orderBy: { date: 'desc' } },
       documents: { orderBy: { createdAt: 'desc' } },
       commentaires: { orderBy: { createdAt: 'desc' }, include: { author: true } }
@@ -150,7 +151,7 @@ export default async function DossierDetailPage({
         dossierId={id} 
         currentStatus={dossier.statut} 
         isAdmin={isAdmin} 
-        hasResponsables={!!dossier.responsableCSId && !!dossier.intervenantId} 
+        hasResponsables={!!dossier.responsableCSId} 
         finalDecision={dossier.finalDecision} 
       />
 
@@ -195,9 +196,16 @@ export default async function DossierDetailPage({
                 </span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Intervenant (Action)</span>
+                <span className={styles.infoLabel}>Responsable de l'action</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color="var(--text-secondary)" /> {dossier.intervenant?.nom || 'Non assigné'} {dossier.intervenant?.type ? `(${dossier.intervenant.type})` : ''}
+                  <User size={16} color="var(--text-secondary)" /> 
+                  {dossier.actionUser ? (
+                    <>{dossier.actionUser.name} (CS)</>
+                  ) : dossier.prestataire ? (
+                    <>{dossier.prestataire.nom} ({dossier.prestataire.type})</>
+                  ) : (
+                    'Non assigné'
+                  )}
                 </span>
               </div>
             </div>
@@ -214,7 +222,7 @@ export default async function DossierDetailPage({
               <h2 className={styles.cardTitle}>Informations Spécifiques (Équipements)</h2>
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}><span className={styles.infoLabel}>Type d'installation</span><span className={styles.infoValue}>{dossier.typeInstallation || '-'}</span></div>
-                <div className={styles.infoItem}><span className={styles.infoLabel}>Prestataire de maintenance</span><span className={styles.infoValue}>{dossier.prestataire || '-'}</span></div>
+                <div className={styles.infoItem}><span className={styles.infoLabel}>Prestataire de maintenance</span><span className={styles.infoValue}>{dossier.prestataire?.nom || '-'}</span></div>
                 <div className={styles.infoItem}><span className={styles.infoLabel}>Contrat de maintenance</span><span className={styles.infoValue}>{dossier.contratMaintenance || '-'}</span></div>
                 <div className={styles.infoItem}><span className={styles.infoLabel}>Prochaine échéance</span><span className={styles.infoValue} style={{ color: 'var(--danger)', fontWeight: 600 }}>{dossier.nextDeadline ? formatDate(dossier.nextDeadline) : '-'}</span></div>
               </div>

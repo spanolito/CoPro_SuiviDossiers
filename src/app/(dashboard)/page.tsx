@@ -7,7 +7,7 @@ const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
 export default async function DashboardPage() {
   const dossiers = await prisma.dossier.findMany({
-    include: { responsableCS: true, intervenant: true, category: true }
+    include: { responsableCS: true, prestataire: true, category: true }
   })
 
   // Metrics
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const countBlocked = dossiers.filter(d => d.statut === 'BLOQUE').length
 
   // Todo Items Lists
-  const unassigned = dossiers.filter(d => (!d.responsableCSId || !d.intervenantId) && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
+  const unassigned = dossiers.filter(d => !d.responsableCSId && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
   const blocked = dossiers.filter(d => d.statut === 'BLOQUE')
   const toValidate = dossiers.filter(d => d.statut === 'A_VALIDER')
 
@@ -31,10 +31,10 @@ export default async function DashboardPage() {
     count: u.dossiersSuivis.filter(d => d.statut !== 'CLOTURE').length
   })).sort((a,b) => b.count - a.count)
 
-  const intervenants = await prisma.intervenant.findMany({
+  const prestataires = await prisma.prestataire.findMany({
     include: { dossiers: true }
   })
-  const intervenantsBreakdown = intervenants.map(i => ({
+  const prestatairesBreakdown = prestataires.map(i => ({
     name: i.nom,
     count: i.dossiers.filter(d => d.statut !== 'CLOTURE').length
   })).sort((a,b) => b.count - a.count)
@@ -151,9 +151,9 @@ export default async function DashboardPage() {
           </div>
 
           <div className={styles.widget}>
-            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Intervenants Actifs</div>
+            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Prestataires Actifs</div>
             <div className={styles.assigneeList}>
-              {intervenantsBreakdown.map((intv, index) => (
+              {prestatairesBreakdown.map((intv, index) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar} style={{ background: '#e9fac8', color: '#5c940d' }}>{getInitials(intv.name)}</div>
@@ -167,7 +167,7 @@ export default async function DashboardPage() {
                   <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
                 </div>
-                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.intervenantId).length}</span>
+                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.prestataireId).length}</span>
               </div>
             </div>
           </div>

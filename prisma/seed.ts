@@ -57,13 +57,16 @@ async function main() {
   const catAG = await prisma.category.upsert({ where: { name: 'Décision AG' }, update: {}, create: { name: 'Décision AG' } })
   const catFacade = await prisma.category.upsert({ where: { name: 'Façade' }, update: {}, create: { name: 'Façade' } })
 
-  // Intervenants
-  const intPichet = await prisma.intervenant.create({ data: { nom: 'Syndic (Pichet)', type: 'Syndic' } })
-  const intEngie = await prisma.intervenant.create({ data: { nom: 'ENGIE', type: 'Entreprise' } })
-  const intSapitec = await prisma.intervenant.create({ data: { nom: 'SAPITEC', type: 'Entreprise' } })
-  const intHydro = await prisma.intervenant.create({ data: { nom: 'HydroSolutions', type: 'Entreprise' } })
-  const intCopro = await prisma.intervenant.create({ data: { nom: 'Copropriétaire', type: 'Copropriétaire' } })
-  const intAutre = await prisma.intervenant.create({ data: { nom: 'Autre', type: 'Autre' } })
+  // Prestataires
+  const prVolfeu = await prisma.prestataire.create({ data: { nom: 'VOLFEU', type: 'technique' } })
+  const prGlobal = await prisma.prestataire.create({ data: { nom: 'GLOBAL CONSTRUCTION CLAIMS', type: 'technique' } })
+  const prGex = await prisma.prestataire.create({ data: { nom: 'GEX MULTISERVICES', type: 'technique' } })
+  const prPichon = await prisma.prestataire.create({ data: { nom: 'ESPACES VERTS PICHON', type: 'espaces verts' } })
+  const prWalterre = await prisma.prestataire.create({ data: { nom: 'WALTERRE', type: 'chauffage' } })
+  const prEngie = await prisma.prestataire.create({ data: { nom: 'ENGIE', type: 'chauffage' } })
+  const prChazelle = await prisma.prestataire.create({ data: { nom: 'Cabinet CHAZELLE / Me GEOFFRAY', type: 'juridique' } })
+  const prPersea = await prisma.prestataire.create({ data: { nom: 'Cabinet PERSEA', type: 'juridique' } })
+  const prPichet = await prisma.prestataire.create({ data: { nom: 'PICHET IMMOBILIER SERVICES', type: 'syndic' } })
 
 
   // Dossiers
@@ -79,9 +82,10 @@ async function main() {
       priorite: 'haute',
       building: 'Bâtiment A',
       lotZone: 'Sous-sol / Garage',
+      typeDossier: 'Travaux',
       categoryId: catInfiltration.id,
       responsableCSId: adminUser.id,
-      intervenantId: intPichet.id,
+      prestataireId: prPichet.id,
       etapes: {
         create: [
           { title: 'Signalement reçu', statut: 'terminée', comment: 'Mail du copropriétaire.', date: new Date('2026-03-01T10:00:00Z') },
@@ -103,9 +107,10 @@ async function main() {
       priorite: 'urgente',
       building: 'Bâtiment Principal',
       lotZone: 'Toit terrasse',
+      typeDossier: 'Travaux',
       categoryId: catToiture.id,
       responsableCSId: adminUser.id,
-      intervenantId: intSapitec.id,
+      prestataireId: prGex.id,
     }
   })
 
@@ -121,8 +126,10 @@ async function main() {
       priorite: 'moyenne',
       building: 'Bâtiment B',
       lotZone: 'Appartement 12',
+      typeDossier: 'Juridique',
       categoryId: catLitige.id,
       responsableCSId: conseilUser.id,
+      prestataireId: prChazelle.id,
     }
   })
 
@@ -136,8 +143,10 @@ async function main() {
       description: 'Besoin de 3 devis pour la prochaine AG concernant le ravalement côté rue.',
       statut: 'nouveau',
       priorite: 'basse',
+      typeDossier: 'Travaux',
       categoryId: catFacade.id,
       responsableCSId: adminUser.id,
+      prestataireId: null,
     }
   })
 
@@ -153,6 +162,7 @@ async function main() {
       priorite: 'haute',
       building: 'Bâtiment A',
       lotZone: '2ème Étage',
+      typeDossier: 'Autre',
       categoryId: catElectricite.id,
       etapes: {
         create: [
@@ -172,6 +182,7 @@ async function main() {
       description: 'Mise aux normes décidée à la dernière AG. Attente signature contrat.',
       statut: 'en_attente_syndic',
       priorite: 'moyenne',
+      typeDossier: 'Syndic',
       categoryId: catAG.id,
     }
   })
@@ -186,11 +197,11 @@ async function main() {
       description: 'Code erreur E42 sur la chaudière principale. Plus d\'eau chaude.',
       statut: 'urgent_intervention',
       priorite: 'urgente',
+      typeDossier: 'Chauffage',
       categoryId: catChauffage.id,
       responsableCSId: adminUser.id,
-      intervenantId: intEngie.id,
+      prestataireId: prEngie.id,
       typeInstallation: 'Chaudière Gaz',
-      prestataire: 'ChauffagePro Services',
       contratMaintenance: 'P2',
       lastMaintenance: new Date('2025-10-15T00:00:00Z'),
       nextDeadline: new Date('2026-10-15T00:00:00Z')

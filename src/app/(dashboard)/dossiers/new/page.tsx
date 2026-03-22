@@ -3,11 +3,12 @@ import styles from './new-dossier.module.css'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import LocalisationClient from '@/components/dossiers/LocalisationClient'
+import AssignationClient from '@/components/dossiers/AssignationClient'
 
 export default async function NewDossierPage() {
   const categories = await prisma.category.findMany()
   const users = await prisma.user.findMany({ select: { id: true, name: true } })
-  const intervenants = await prisma.intervenant.findMany({ orderBy: { nom: 'asc' } })
+  const prestataires = await prisma.prestataire.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
 
   // Server Action
   async function createDossier(formData: FormData) {
@@ -21,12 +22,26 @@ export default async function NewDossierPage() {
     const localisation = formData.get('localisation') as string
     const precision = formData.get('precision') as string
     
+    const typeDossier = formData.get('typeDossier') as string
     const responsableCSId = formData.get('responsableCSId') as string
-    const intervenantId = formData.get('intervenantId') as string
+    const actionValue = formData.get('actionValue') as string // 'user:id' or 'prestataire:id'
+
+    let actionUserId: string | null = null
+    let prestataireId: string | null = null
+
+    if (actionValue) {
+      const [type, id] = actionValue.split(':')
+      if (type === 'user') actionUserId = id
+      if (type === 'prestataire') prestataireId = id
+    }
 
     // Heating specific context handled if the category is heating (or regardless to not limit it in this demo)
     const typeInstallation = formData.get('typeInstallation') as string
-    const prestataire = formData.get('prestataire') as string
+    const prestataireForm = formData.get('prestataire') as string // wait, this was the string field!
+    // I already removed the string field 'prestataire' from schema and seed!
+    // I can safely drop reading 'prestataire' string or keep reading it if I need to discard it.
+    // Let's just create variables for schema support.
+    const contratMaintenance = formData.get('contratMaintenance') as string || null
 
     // Create unique ref DOS-YYYY-XXXX
     const count = await prisma.dossier.count()
@@ -43,11 +58,12 @@ export default async function NewDossierPage() {
         niveau,
         localisation,
         precision,
+        typeDossier,
         categoryId,
         responsableCSId: responsableCSId || null,
-        intervenantId: intervenantId || null,
+        prestataireId: prestataireId || null,
+        actionUserId: actionUserId || null,
         typeInstallation,
-        prestataire,
       }
     })
 
@@ -93,20 +109,7 @@ export default async function NewDossierPage() {
         <h2 className={styles.sectionTitle}>Localisation & Assignation</h2>
         <div className={styles.formGrid}>
           <LocalisationClient />
-          <div className="form-group">
-            <label htmlFor="responsableCSId">Responsable CS *</label>
-            <select id="responsableCSId" name="responsableCSId" className="form-control" required>
-              <option value="">Sélectionner</option>
-              {users.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="intervenantId">Responsable de l'action *</label>
-            <select id="intervenantId" name="intervenantId" className="form-control" required>
-              <option value="">Sélectionner</option>
-              {intervenants.map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
-            </select>
-          </div>
+          <AssignationClient users={users} prestataires={prestataires} />
         </div>
 
         <h2 className={styles.sectionTitle}>Spécifique Chauffage / Équipements techniques</h2>
@@ -114,10 +117,6 @@ export default async function NewDossierPage() {
           <div className="form-group">
             <label htmlFor="typeInstallation">Type d'installation</label>
             <input type="text" id="typeInstallation" name="typeInstallation" className="form-control" placeholder="ex: Chaudière Gaz, PAC" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="prestataire">Prestataire associé</label>
-            <input type="text" id="prestataire" name="prestataire" className="form-control" placeholder="ex: ChauffagePro" />
           </div>
         </div>
 

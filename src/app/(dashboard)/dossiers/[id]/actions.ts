@@ -117,8 +117,8 @@ export async function updateDossierStatus(id: string, newStatus: string) {
   }
   
   if (newStatus === StatutDossier.AFFECTE || newStatus === StatutDossier.EN_COURS) {
-    if (!dossier.responsableCSId || !dossier.intervenantId) {
-      throw new Error("L'avancement du dossier est bloqué : vous devez définir un Responsable CS ET un Responsable d'action (Intervenant).")
+    if (!dossier.responsableCSId) {
+      throw new Error("L'avancement du dossier est bloqué : vous devez définir un Responsable CS.")
     }
   }
 

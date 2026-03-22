@@ -28,6 +28,7 @@ model User {
   updatedAt DateTime @updatedAt
   
   dossiersSuivis   Dossier[] @relation("ResponsableCS")
+  dossiersActions  Dossier[] @relation("ActionUser")
   commentaires     Commentaire[]
   activityLogs     ActivityLog[]
   archivedDossiers Dossier[] @relation("ArchivedDossiers")
@@ -66,12 +67,16 @@ model Dossier {
   responsableCSId   String?
   responsableCS     User?       @relation("ResponsableCS", fields: [responsableCSId], references: [id], onDelete: SetNull)
   
-  intervenantId     String?
-  intervenant       Intervenant? @relation(fields: [intervenantId], references: [id], onDelete: SetNull)
+  prestataireId     String?
+  prestataire       Prestataire? @relation(fields: [prestataireId], references: [id], onDelete: SetNull)
+  
+  actionUserId      String?
+  actionUser        User?       @relation("ActionUser", fields: [actionUserId], references: [id], onDelete: SetNull)
+  
+  typeDossier       String       @default("Autre") // Sécurité, Travaux, Chauffage, Espaces verts, Juridique, Autre
   
   // Specific Heating Fields
   typeInstallation  String?
-  prestataire       String?
   contratMaintenance String?
   lastMaintenance   DateTime?
   nextDeadline      DateTime?
@@ -157,12 +162,13 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Intervenant {
+model Prestataire {
   id        String   @id @default(cuid())
   nom       String
-  type      String   // Syndic, Entreprise, Assurance, Copropriétaire, Autre
+  type      String   // technique, espaces verts, chauffage, juridique, syndic
   email     String?
   telephone String?
+  actif     Boolean  @default(true)
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
