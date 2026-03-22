@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import styles from './dashboard.module.css'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2, CircleDot, Clock, LayoutGrid, PauseCircle, Users, Calendar } from 'lucide-react'
+import ClickableRow from '@/components/ui/ClickableRow'
 
 const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
@@ -161,12 +162,12 @@ export default async function DashboardPage() {
                       </td>
                     </tr>
                   ) : prioritizedDossiers.map((d: any) => (
-                    <tr key={d.id} style={{ cursor: 'pointer' }}>
+                    <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
                       <td>
-                        <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
                           <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{d.reference}</span>
-                        </Link>
+                        </div>
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: 4 }}>
@@ -186,7 +187,7 @@ export default async function DashboardPage() {
                           </div>
                         ) : <span style={{ color: 'var(--text-secondary)' }}>-</span>}
                       </td>
-                    </tr>
+                    </ClickableRow>
                   ))}
                 </tbody>
               </table>

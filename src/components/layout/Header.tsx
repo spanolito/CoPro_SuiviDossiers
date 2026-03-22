@@ -1,15 +1,31 @@
+'use client'
+
 import { Search } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import styles from './layout.module.css'
+import { usePathname } from 'next/navigation'
 
 interface HeaderProps {
-  title: string
   userName?: string
   userRole?: string
 }
 
-export default function Header({ title, userName = 'Utilisateur', userRole = 'Membre du Conseil Syndical' }: HeaderProps) {
+const titleMap: Record<string, string> = {
+  '/': 'Vue d\'ensemble',
+  '/dossiers': 'Répertoire des dossiers',
+  '/import': 'Import de dossiers',
+  '/profil': 'Mon profil',
+  '/users': 'Gestion des utilisateurs',
+  '/settings': 'Paramètres de l\'application'
+}
+
+export default function Header({ userName = 'Utilisateur', userRole = 'Membre du Conseil Syndical' }: HeaderProps) {
+  const pathname = usePathname()
   const initials = userName.substring(0, 2).toUpperCase()
+
+  // Find exact match or falls back to generic fallback
+  const title = titleMap[pathname] || 
+                (pathname.startsWith('/dossiers/') ? 'Détail du dossier' : 'Tableau de bord')
 
   return (
     <header className={styles.header}>

@@ -25,7 +25,6 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="main-content">
         <Header 
-          title="Tableau de bord" 
           userName={userName} 
           userRole={userRole} 
         />

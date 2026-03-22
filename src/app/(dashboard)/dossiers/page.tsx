@@ -3,6 +3,7 @@ import styles from './dossiers.module.css'
 import Link from 'next/link'
 import { Plus, ArrowRight } from 'lucide-react'
 import DossierFilters from '@/components/dossiers/DossierFilters'
+import ClickableRow from '@/components/ui/ClickableRow'
 
 export default async function DossiersListPage({
   searchParams,
@@ -124,15 +125,15 @@ export default async function DossiersListPage({
                 </td>
               </tr>
             ) : dossiers.map((d: any) => (
-              <tr key={d.id} style={{ cursor: 'pointer' }}>
+              <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.reference}</td>
                 <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none' }}>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || 'Non spécifié'}
                     </span>
-                  </Link>
+                  </span>
                 </td>
                 <td><span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{getTypeDossierLabel(d.typeDossier)}</span></td>
                 <td>
@@ -152,11 +153,11 @@ export default async function DossiersListPage({
                   <div style={{ fontSize: 13, fontWeight: 500 }}>{d.responsableCS?.nomAffiche || '-'}</div>
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                  <Link href={`/dossiers/${d.id}`} className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     Voir <ArrowRight size={14} />
-                  </Link>
+                  </span>
                 </td>
-              </tr>
+              </ClickableRow>
             ))}
           </tbody>
         </table>
