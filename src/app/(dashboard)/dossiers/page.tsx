@@ -3,7 +3,6 @@ import styles from './dossiers.module.css'
 import Link from 'next/link'
 import { Plus, ArrowRight } from 'lucide-react'
 import DossierFilters from '@/components/dossiers/DossierFilters'
-import ClickableRow from '@/components/ui/ClickableRow'
 
 export default async function DossiersListPage({
   searchParams,
@@ -111,7 +110,7 @@ export default async function DossiersListPage({
               <th>Statut</th>
               <th>Priorité</th>
               <th>Responsable CS</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th style={{ textAlign: 'right', paddingRight: '16px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -125,39 +124,53 @@ export default async function DossiersListPage({
                 </td>
               </tr>
             ) : dossiers.map((d: any) => (
-              <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
-                <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.reference}</td>
+              <tr key={d.id} style={{ cursor: 'pointer' }}>
                 <td>
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none' }}>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', height: '100%' }}>
+                    {d.reference}
+                  </Link>
+                </td>
+                <td>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '16px', textDecoration: 'none', height: '100%' }}>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || 'Non spécifié'}
                     </span>
-                  </span>
+                  </Link>
                 </td>
-                <td><span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{getTypeDossierLabel(d.typeDossier)}</span></td>
                 <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{getTypeDossierLabel(d.typeDossier)}</span>
+                  </Link>
+                </td>
+                <td>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '16px', textDecoration: 'none', height: '100%' }}>
                     <span className={`badge ${getStatusBadgeClass(d.statut)}`}>
                       {getStatusLabel(d.statut)}
                     </span>
                     {d.archived && <span className="badge badge-neutral" style={{ opacity: 0.8 }}>Archivé</span>}
-                  </div>
+                  </Link>
                 </td>
                 <td>
-                  <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
-                    {getPriorityLabel(d.priorite)}
-                  </span>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                    <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
+                      {getPriorityLabel(d.priorite)}
+                    </span>
+                  </Link>
                 </td>
                 <td>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>{d.responsableCS?.nomAffiche || '-'}</div>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{d.responsableCS?.nomAffiche || '-'}</div>
+                  </Link>
                 </td>
-                <td style={{ textAlign: 'right' }}>
-                  <span className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    Voir <ArrowRight size={14} />
-                  </span>
+                <td>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                    <span className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      Voir <ArrowRight size={14} />
+                    </span>
+                  </Link>
                 </td>
-              </ClickableRow>
+              </tr>
             ))}
           </tbody>
         </table>
