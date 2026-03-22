@@ -189,6 +189,22 @@ export default async function DashboardPage() {
               </table>
             </div>
           </div>
+
+          {/* 3. Actions récentes widget (Movido aquí) */}
+          <div className={styles.widget}>
+            <div className={styles.widgetTitle}><AlertCircle size={18} color="var(--primary)" /> Actions récentes</div>
+            <div className={styles.timelineStream}>
+              {activityLogs.map((log: any) => (
+                <div key={log.id} className={styles.timelineItem}>
+                  <div className={styles.timelineDot}></div>
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineText}>{log.resume}</span>
+                    <span className={styles.timelineTime}>{log.auteur?.nomAffiche} · {formatTime(log.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Sidebar Widgets Column */}
@@ -224,21 +240,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* 4. Derniers Mouvements */}
-          <div className={styles.widget}>
-            <div className={styles.widgetTitle}><LayoutGrid size={18} color="var(--primary)" /> Actions récentes</div>
-            <div className={styles.timelineStream}>
-              {activityLogs.map((log: any) => (
-                <div key={log.id} className={styles.timelineItem}>
-                  <div className={styles.timelineDot}></div>
-                  <div className={styles.timelineContent}>
-                    <span className={styles.timelineText}>{log.resume}</span>
-                    <span className={styles.timelineTime}>{log.auteur?.nomAffiche} · {formatTime(log.createdAt)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
