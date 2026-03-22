@@ -96,10 +96,30 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
          </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         {currentIndex >= 0 && currentIndex < 3 && currentStatus !== 'BLOQUE' && (
           <button className="btn btn-primary" onClick={handleAdvance} disabled={loading}>
             <Play size={16} /> {currentStatus === 'EN_COURS' ? 'Demander Validation' : 'Faire Avancer'}
+          </button>
+        )}
+
+        {currentStatus !== 'BLOQUE' && currentStatus !== 'CLOTURE' && currentStatus !== 'ARCHIVE' && (
+          <button className="btn btn-outline" style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }} onClick={async () => {
+            setLoading(true)
+            try { await updateDossierStatus(dossierId, 'BLOQUE') } catch (err: any) { alert(err.message) }
+            finally { setLoading(false) }
+          }} disabled={loading}>
+            <AlertCircle size={16} /> Bloquer
+          </button>
+        )}
+
+        {currentStatus === 'BLOQUE' && (
+          <button className="btn" style={{ background: 'var(--primary)', color: 'white' }} onClick={async () => {
+            setLoading(true)
+            try { await updateDossierStatus(dossierId, 'EN_COURS') } catch (err: any) { alert(err.message) }
+            finally { setLoading(false) }
+          }} disabled={loading}>
+            <Play size={16} /> Débloquer (→ En Cours)
           </button>
         )}
 

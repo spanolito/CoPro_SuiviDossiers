@@ -5,26 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
-// Re-export enum values for client use
-export const StatutDossier = {
-  ENREGISTRE: 'ENREGISTRE',
-  AFFECTE: 'AFFECTE',
-  EN_COURS: 'EN_COURS',
-  A_VALIDER: 'A_VALIDER',
-  CLOTURE: 'CLOTURE',
-  BLOQUE: 'BLOQUE',
-  ARCHIVE: 'ARCHIVE',
-} as const
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  ENREGISTRE: ['AFFECTE', 'BLOQUE'],
-  AFFECTE: ['EN_COURS', 'BLOQUE', 'ENREGISTRE'],
-  EN_COURS: ['A_VALIDER', 'BLOQUE', 'AFFECTE'],
-  A_VALIDER: ['CLOTURE', 'EN_COURS', 'BLOQUE'],
-  CLOTURE: ['ARCHIVE'],
-  BLOQUE: ['ENREGISTRE', 'AFFECTE', 'EN_COURS'],
-  ARCHIVE: [],
-}
+import { StatutDossier, ALLOWED_TRANSITIONS } from '@/lib/dossier-constants'
 
 async function getCurrentUser() {
   const cookieStore = await cookies()

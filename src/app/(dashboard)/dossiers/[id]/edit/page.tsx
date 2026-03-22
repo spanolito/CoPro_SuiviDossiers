@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { ALLOWED_TRANSITIONS, STATUT_LABELS } from '@/lib/dossier-constants'
 
 export default async function EditDossierPage({
   params,
@@ -29,21 +30,50 @@ export default async function EditDossierPage({
     const syndicImpliqueId = formData.get('syndicImpliqueId') as string
     const zoneCommuneId = formData.get('zoneCommuneId') as string
     const precisionLocalisation = formData.get('precisionLocalisation') as string
+    const statut = formData.get('statut') as string
+
+    const dossier = await prisma.dossier.findUnique({ where: { id } })
+    if (!dossier) throw new Error('Dossier introuvable')
+
+    const updateData: any = {
+      titre,
+      description,
+      typeDossier: typeDossier as any,
+      priorite: priorite as any,
+      responsableCSId: responsableCSId || undefined,
+      prestatairePrincipalId: prestatairePrincipalId || null,
+      syndicImpliqueId: syndicImpliqueId || null,
+      zoneCommuneId: zoneCommuneId || null,
+      precisionLocalisation: precisionLocalisation || null,
+      dateDerniereAction: new Date(),
+    }
+
+    if (statut && statut !== dossier.statut) {
+      const allowed = ALLOWED_TRANSITIONS[dossier.statut] || []
+      if (!allowed.includes(statut)) {
+        throw new Error(`Transition de "${dossier.statut}" vers "${statut}" non autorisée.`)
+      }
+      updateData.statut = statut
+      
+      const { cookies } = await import('next/headers')
+      const { verifyToken } = await import('@/lib/auth')
+      const cookieStore = await cookies()
+      const token = cookieStore.get('auth_token')?.value
+      const payload = token ? await verifyToken(token) : null
+
+      await prisma.dossierActivite.create({
+        data: {
+          dossierId: id,
+          userId: (payload?.id as string) || 'system',
+          typeAction: 'STATUT_CHANGE',
+          resume: `Statut changé vers ${statut} (via Édition)`,
+        }
+      })
+    }
 
     await prisma.dossier.update({
       where: { id },
-      data: {
-        titre,
-        description,
-        typeDossier: typeDossier as any,
-        priorite: priorite as any,
-        responsableCSId: responsableCSId || undefined,
-        prestatairePrincipalId: prestatairePrincipalId || null,
-        syndicImpliqueId: syndicImpliqueId || null,
-        zoneCommuneId: zoneCommuneId || null,
-        precisionLocalisation: precisionLocalisation || null,
-        dateDerniereAction: new Date(),
-      }
+      data: updateData
     })
 
     revalidatePath(`/dossiers/${id}`)
@@ -62,6 +92,15 @@ export default async function EditDossierPage({
           <div className="form-group">
             <label htmlFor="titre">Titre *</label>
             <input type="text" id="titre" name="titre" className="form-control" required defaultValue={dossier.titre} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="statut">Statut *</label>
+            <select id="statut" name="statut" className="form-control" required defaultValue={dossier.statut}>
+              <option value={dossier.statut}>{STATUT_LABELS[dossier.statut] || dossier.statut} (Actuel)</option>
+              {(ALLOWED_TRANSITIONS[dossier.statut] || []).map((s: string) => (
+                <option key={s} value={s}>{STATUT_LABELS[s] || s}</option>
+              ))}
+            </select>
           </div>
           <div className="form-group">
             <label htmlFor="typeDossier">Type *</label>
