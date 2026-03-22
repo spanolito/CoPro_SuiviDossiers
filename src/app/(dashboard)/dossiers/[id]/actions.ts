@@ -58,7 +58,6 @@ export async function archiveDossier(id: string, archive: boolean) {
 export async function deleteDossiers(id: string) {
   const admin = await getAdminUser()
   
-  // Rely on onDelete: Cascade defined in Prisma for child records
   await prisma.dossier.delete({ where: { id } })
 
   await prisma.activityLog.create({
@@ -71,4 +70,90 @@ export async function deleteDossiers(id: string) {
   })
 
   redirect('/dossiers')
+}
+
+export async function updateDossierStatus(id: string, newStatus: string) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  if (!token) throw new Error('Non authentifié')
+  const payload = await verifyToken(token)
+
+  if (payload?.role === 'Read-only') {
+    throw new Error('Action non autorisée')
+  }
+
+  // Business Rule: only admin can CLOTURE
+  if (newStatus === 'CLOTURE' && payload?.role !== 'Admin') {
+    throw new Error('Seul un administrateur peut clôturer ce dossier.')
+  }
+
+  await prisma.dossier.update({
+    where: { id },
+    data: { statut: newStatus }
+  })
+
+  await prisma.activityLog.create({
+    data: {
+      action: `STATUS_UPDATED_${newStatus}`,
+      targetType: 'Dossier',
+      targetId: id,
+      userId: payload?.id as string
+    }
+  })
+
+  revalidatePath(`/dossiers/${id}`)
+}
+
+export async function finalizeDossier(id: string, decision: string) {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  if (!token) throw new Error('Non authentifié')
+  const payload = await verifyToken(token)
+
+  if (payload?.role === 'Read-only') throw new Error('Non autorisé')
+
+  await prisma.dossier.update({
+    where: { id },
+    data: {
+      statut: 'A_VALIDER',
+      finalDecision: decision,
+      finalizedAt: new Date(),
+      finalizedById: payload?.id as string
+    }
+  })
+
+  await prisma.activityLog.create({
+    data: {
+      action: 'DOSSIER_FINALIZED',
+      targetType: 'Dossier',
+      targetId: id,
+      userId: payload?.id as string
+    }
+  })
+
+  revalidatePath(`/dossiers/${id}`)
+}
+
+export async function closeDossier(id: string) {
+  const admin = await getAdminUser() // Enforces Admin role
+
+  await prisma.dossier.update({
+    where: { id },
+    data: {
+      statut: 'CLOTURE',
+      closedAt: new Date(),
+      closedById: admin.id as string
+    }
+  })
+
+  await prisma.activityLog.create({
+    data: {
+      action: 'DOSSIER_CLOSED',
+      targetType: 'Dossier',
+      targetId: id,
+      userId: admin.id as string
+    }
+  })
+
+  revalidatePath(`/dossiers/${id}`)
 }

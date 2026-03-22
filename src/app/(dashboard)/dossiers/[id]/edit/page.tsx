@@ -74,16 +74,12 @@ export default async function EditDossierPage({
           <div className="form-group">
             <label htmlFor="statut">Statut *</label>
             <select id="statut" name="statut" className="form-control" defaultValue={dossier.statut} required>
-              <option value="nouveau">Nouveau</option>
-              <option value="en_analyse">En Analyse</option>
-              <option value="en_attente_devis">Attente Devis</option>
-              <option value="en_attente_syndic">Attente Syndic</option>
-              <option value="en_cours">En Cours d'intervention</option>
-              <option value="urgent_intervention">Urgent</option>
-              <option value="en_suivi">En Suivi</option>
-              <option value="bloque">Bloqué</option>
-              <option value="resolu">Résolu</option>
-              <option value="cloture">Clôturé</option>
+              <option value="ENREGISTRE">Enregistré</option>
+              <option value="AFFECTE">Affecté</option>
+              <option value="EN_COURS">En Cours</option>
+              <option value="A_VALIDER">À Valider</option>
+              <option value="CLOTURE">Clôturé</option>
+              <option value="BLOQUE">Bloqué</option>
             </select>
           </div>
 

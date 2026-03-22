@@ -32,6 +32,8 @@ model User {
   activityLogs     ActivityLog[]
   archivedDossiers Dossier[] @relation("ArchivedDossiers")
   notifications    Notification[]
+  finalizedDossiers Dossier[] @relation("FinalizedDossiers")
+  closedDossiers   Dossier[] @relation("ClosedDossiers")
 }
 
 model Category {
@@ -80,6 +82,15 @@ model Dossier {
   archivedAt       DateTime?
   archivedById     String?
   archivedBy       User?     @relation("ArchivedDossiers", fields: [archivedById], references: [id])
+
+  finalDecision    String?
+  finalizedAt      DateTime?
+  finalizedById    String?
+  finalizedBy      User?     @relation("FinalizedDossiers", fields: [finalizedById], references: [id])
+
+  closedAt         DateTime?
+  closedById       String?
+  closedBy         User?     @relation("ClosedDossiers", fields: [closedById], references: [id])
 }
 
 model Etape {

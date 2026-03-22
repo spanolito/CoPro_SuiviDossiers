@@ -1,12 +1,13 @@
 import prisma from '@/lib/prisma'
 import styles from './dossier-detail.module.css'
 import Link from 'next/link'
-import { ArrowLeft, FileText, Calendar, User, MapPin, Edit, CheckCircle, MessageSquare, UploadCloud, Activity } from 'lucide-react'
+import { ArrowLeft, FileText, Calendar, User, MapPin, Edit, MessageSquare, UploadCloud, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import DossierActions from './DossierActions'
+import DossierStatusControls from './DossierStatusControls'
 
 export default async function DossierDetailPage({
   params,
@@ -21,7 +22,6 @@ export default async function DossierDetailPage({
   const payload = token ? await verifyToken(token) : null
   const isAdmin = payload?.role === 'Admin'
 
-  
   const dossier = await prisma.dossier.findUnique({
     where: { id },
     include: {
@@ -41,8 +41,19 @@ export default async function DossierDetailPage({
     include: { user: true }
   })
 
-  // --- SERVER ACTIONS ---
+  const getStatusLabel = (statut: string) => {
+    switch(statut) {
+      case 'ENREGISTRE': return 'Enregistré'
+      case 'AFFECTE': return 'Affecté'
+      case 'EN_COURS': return 'En Cours'
+      case 'A_VALIDER': return 'À Valider'
+      case 'CLOTURE': return 'Clôturé'
+      case 'BLOQUE': return 'Bloqué'
+      default: return statut
+    }
+  }
 
+  // --- SERVER ACTIONS ---
   async function addEtape(formData: FormData) {
     'use server'
     const title = formData.get('title') as string
@@ -92,7 +103,7 @@ export default async function DossierDetailPage({
       revalidatePath(`/dossiers/${id}`)
     }
   }
-
+  
   const getPriorityBadgeClass = (priority: string) => {
     switch(priority) {
       case 'urgente': return 'badge-urgent'
@@ -115,7 +126,7 @@ export default async function DossierDetailPage({
           <div className={styles.badges}>
             <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{dossier.reference}</span>
             <span className={`badge ${getPriorityBadgeClass(dossier.priorite)}`}>Priorité {dossier.priorite}</span>
-            <span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>Statut: {dossier.statut}</span>
+            <span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>{getStatusLabel(dossier.statut)}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -132,6 +143,15 @@ export default async function DossierDetailPage({
           />
         </div>
       </div>
+
+      {/* Stepper & Action Controls Group */}
+      <DossierStatusControls 
+        dossierId={id} 
+        currentStatus={dossier.statut} 
+        isAdmin={isAdmin} 
+        hasAssignee={!!dossier.assigneeId} 
+        finalDecision={dossier.finalDecision} 
+      />
 
       <div className={styles.container}>
         {/* Colonne Principale */}

@@ -1,104 +1,164 @@
 import prisma from '@/lib/prisma'
 import styles from './dashboard.module.css'
 import Link from 'next/link'
-import { MoreVertical } from 'lucide-react'
+import { AlertCircle, CheckCircle2, CircleDot, Clock, LayoutGrid, PauseCircle, Users } from 'lucide-react'
 
-// Helper to get initials
 const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
 export default async function DashboardPage() {
   const dossiers = await prisma.dossier.findMany({
-    include: {
-      category: true,
-      assignee: true,
-    },
-    orderBy: { updatedAt: 'desc' }
+    include: { assignee: true, category: true }
   })
 
-  // Group dossiers into columns
-  const pendingStatuses = ['nouveau', 'en_analyse', 'en_attente_devis', 'en_attente_syndic']
-  const assignedStatuses = ['en_cours', 'urgent_intervention', 'en_suivi']
-  const completedStatuses = ['resolu', 'cloture']
-  const canceledStatuses = ['bloque']
+  // Metrics
+  const countNew = dossiers.filter(d => d.statut === 'ENREGISTRE').length
+  const countAssigned = dossiers.filter(d => d.statut === 'AFFECTE' || d.statut === 'EN_COURS').length
+  const countToValidate = dossiers.filter(d => d.statut === 'A_VALIDER').length
+  const countClosed = dossiers.filter(d => d.statut === 'CLOTURE').length
+  const countBlocked = dossiers.filter(d => d.statut === 'BLOQUE').length
 
-  const columns = [
-    { title: 'À Traiter (Pending)', items: dossiers.filter(d => pendingStatuses.includes(d.statut)) },
-    { title: 'En Cours (Assigned)', items: dossiers.filter(d => assignedStatuses.includes(d.statut)) },
-    { title: 'Terminés (Completed)', items: dossiers.filter(d => completedStatuses.includes(d.statut)) },
-    { title: 'Bloqués/Annulés (Canceled)', items: dossiers.filter(d => canceledStatuses.includes(d.statut)) },
-  ]
+  // Todo Items Lists
+  const unassigned = dossiers.filter(d => !d.assigneeId && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
+  const blocked = dossiers.filter(d => d.statut === 'BLOQUE')
+  const toValidate = dossiers.filter(d => d.statut === 'A_VALIDER')
 
-  const getPriorityBadgeClass = (priority: string) => {
-    switch(priority) {
-      case 'urgente': return 'badge-urgent'
-      case 'haute': return 'badge-high'
-      case 'moyenne': return 'badge-normal'
-      default: return 'badge-low'
-    }
-  }
+  // Assignee Breakdown
+  const users = await prisma.user.findMany({
+    include: { dossiersAssigned: true }
+  })
+  const staffBreakdown = users.map(u => ({
+    name: u.name,
+    count: u.dossiersAssigned.filter(d => d.statut !== 'CLOTURE').length
+  })).sort((a,b) => b.count - a.count)
 
-  const getPriorityLabel = (priority: string) => {
-    switch(priority) {
-      case 'urgente': return 'Urgent'
-      case 'haute': return 'High'
-      case 'moyenne': return 'Normal'
-      default: return 'Low'
-    }
+  // Recent Streams
+  const activityLogs = await prisma.activityLog.findMany({
+    take: 6,
+    orderBy: { createdAt: 'desc' }
+  })
+
+  const formatTime = (date: Date) => {
+    const min = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000)
+    if (min < 60) return `${min}m ago`
+    const hr = Math.floor(min / 60)
+    if (hr < 24) return `${hr}h ago`
+    return new Date(date).toLocaleDateString()
   }
 
   return (
-    <div className={styles.boardContainer}>
-      {columns.map((col) => (
-        <div key={col.title} className={styles.column}>
-          <div className={styles.columnHeader}>
-            {col.title}
-            <span style={{ background: 'var(--border-color)', padding: '2px 8px', borderRadius: '12px' }}>
-              {col.items.length}
-            </span>
+    <div style={{ paddingBottom: 40 }}>
+      {/* 1. Vue Rapide / Metrics */}
+      <div className={styles.metricsRow}>
+        <Link href="/dossiers?status=ENREGISTRE" className={styles.metricCard}>
+          <CircleDot size={20} color="var(--info)" />
+          <span className={styles.metricValue}>{countNew}</span>
+          <span className={styles.metricTitle}>Enregistrés</span>
+        </Link>
+        <Link href="/dossiers?status=EN_COURS" className={styles.metricCard}>
+          <Clock size={20} color="var(--primary)" />
+          <span className={styles.metricValue}>{countAssigned}</span>
+          <span className={styles.metricTitle}>En Cours</span>
+        </Link>
+        <Link href="/dossiers?status=A_VALIDER" className={styles.metricCard}>
+          <AlertCircle size={20} color="var(--warning)" />
+          <span className={styles.metricValue}>{countToValidate}</span>
+          <span className={styles.metricTitle}>À Valider</span>
+        </Link>
+        <Link href="/dossiers?status=CLOTURE" className={styles.metricCard}>
+          <CheckCircle2 size={20} color="var(--success)" />
+          <span className={styles.metricValue}>{countClosed}</span>
+          <span className={styles.metricTitle}>Clôturés</span>
+        </Link>
+        <Link href="/dossiers?status=BLOQUE" className={styles.metricCard}>
+          <PauseCircle size={20} color="var(--danger)" />
+          <span className={styles.metricValue}>{countBlocked}</span>
+          <span className={styles.metricTitle}>Bloqués</span>
+        </Link>
+      </div>
+
+      <div className={styles.dashboardGrid}>
+        {/* Central Widgets Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* 2. Actions à faire widget */}
+          <div className={styles.widget}>
+            <div className={styles.widgetTitle}><AlertCircle size={18} color="var(--primary)" /> Actions à faire</div>
+            <div className={styles.todoList}>
+              {unassigned.length > 0 && unassigned.map(d => (
+                <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
+                  <div className={styles.todoMain}>
+                    <span className={styles.todoTitle}>{d.title}</span>
+                    <span className={styles.todoSub}>Non affecté - {d.category.name} ({d.reference})</span>
+                  </div>
+                  <span className="badge" style={{ background: '#FFF4E6', color: '#FD7E14', fontSize: 11 }}>À affecter</span>
+                </Link>
+              ))}
+              {toValidate.length > 0 && toValidate.map(d => (
+                <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
+                  <div className={styles.todoMain}>
+                    <span className={styles.todoTitle}>{d.title}</span>
+                    <span className={styles.todoSub}>Attente approbation Admin ({d.reference})</span>
+                  </div>
+                  <span className="badge" style={{ background: '#E6FCF5', color: '#099268', fontSize: 11 }}>À clôturer</span>
+                </Link>
+              ))}
+              {blocked.length > 0 && blocked.map(d => (
+                <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
+                  <div className={styles.todoMain}>
+                    <span className={styles.todoTitle}>{d.title}</span>
+                    <span className={styles.todoSub}>Dossier bloqué ({d.reference})</span>
+                  </div>
+                  <span className="badge" style={{ background: '#FFF5F5', color: '#FA5252', fontSize: 11 }}>Bloqué</span>
+                </Link>
+              ))}
+              {unassigned.length === 0 && toValidate.length === 0 && blocked.length === 0 && (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>Aucune action urgente requise.</div>
+              )}
+            </div>
           </div>
-          
-          {col.items.map((dossier) => (
-             <Link href={`/dossiers/${dossier.id}`} key={dossier.id} className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div className={styles.cardCategory}>
-                      <MoreVertical size={14} />
-                      <span className={styles.cardRef}>{dossier.reference}</span>
-                    </div>
-                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: 4 }}>
-                      {dossier.category.name}
-                    </span>
-                  </div>
-                  <span className={`badge ${getPriorityBadgeClass(dossier.priorite)}`}>
-                    {getPriorityLabel(dossier.priorite)}
-                  </span>
-                </div>
-
-                <div className={styles.cardLocation}>
-                  <span>Location</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)'}}>
-                    {dossier.building} {dossier.lotZone ? `- ${dossier.lotZone}` : ''}
-                  </span>
-                </div>
-
-                <div className={styles.cardTitle}>{dossier.title}</div>
-                <div className={styles.cardDescription}>{dossier.description}</div>
-
-                {dossier.assignee && (
-                  <div className={styles.cardFooter}>
-                    <div className={styles.avatar} style={{ width: 28, height: 28, fontSize: 11 }}>
-                      {getInitials(dossier.assignee.name)}
-                    </div>
-                    <div className={styles.assigneeInfo}>
-                      <span className={styles.assigneeLabel}>Assigned to</span>
-                      <span className={styles.assigneeName}>{dossier.assignee.name}</span>
-                    </div>
-                  </div>
-                )}
-             </Link>
-          ))}
         </div>
-      ))}
+
+        {/* Sidebar Widgets Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* 3. Répartition Responsables */}
+          <div className={styles.widget}>
+            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Répartition des dossiers</div>
+            <div className={styles.assigneeList}>
+              {staffBreakdown.map((staff, index) => (
+                <div key={index} className={styles.assigneeItem}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div className={styles.avatar}>{getInitials(staff.name)}</div>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{staff.name}</span>
+                  </div>
+                  <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', fontSize: 12 }}>{staff.count}</span>
+                </div>
+              ))}
+              <div className={styles.assigneeItem}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
+                </div>
+                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.assigneeId).length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Derniers Mouvements */}
+          <div className={styles.widget}>
+            <div className={styles.widgetTitle}><LayoutGrid size={18} color="var(--primary)" /> Actions récentes</div>
+            <div className={styles.timelineStream}>
+              {activityLogs.map((log) => (
+                <div key={log.id} className={styles.timelineItem}>
+                  <div className={styles.timelineDot}></div>
+                  <div className={styles.timelineContent}>
+                    <span className={styles.timelineText}>{log.action.replace(/_/g, ' ')}</span>
+                    <span className={styles.timelineTime}>{formatTime(log.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

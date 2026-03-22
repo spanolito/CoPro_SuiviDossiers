@@ -51,16 +51,12 @@ export default async function DossiersListPage({
 
   const getStatusLabel = (statut: string) => {
     switch(statut) {
-      case 'nouveau': return 'Nouveau'
-      case 'en_analyse': return 'En Analyse'
-      case 'en_attente_devis': return 'Attente Devis'
-      case 'en_attente_syndic': return 'Attente Syndic'
-      case 'en_cours': return 'En Cours'
-      case 'urgent_intervention': return 'Intervention Urgente'
-      case 'en_suivi': return 'En Suivi'
-      case 'bloque': return 'Bloqué'
-      case 'resolu': return 'Résolu'
-      case 'cloture': return 'Clôturé'
+      case 'ENREGISTRE': return 'Enregistré'
+      case 'AFFECTE': return 'Affecté'
+      case 'EN_COURS': return 'En Cours'
+      case 'A_VALIDER': return 'À Valider'
+      case 'CLOTURE': return 'Clôturé'
+      case 'BLOQUE': return 'Bloqué'
       default: return statut
     }
   }
@@ -87,13 +83,11 @@ export default async function DossiersListPage({
           <label htmlFor="status">Statut</label>
           <select id="status" name="status" className="form-control" defaultValue={status}>
             <option value="">Tous les statuts</option>
-            <option value="nouveau">Nouveau</option>
-            <option value="en_analyse">En Analyse</option>
-            <option value="en_attente_devis">Attente Devis</option>
-            <option value="en_cours">En Cours</option>
-            <option value="resolu">Résolu</option>
-            <option value="cloture">Clôturé</option>
-            <option value="bloque">Bloqué</option>
+            <option value="ENREGISTRE">Enregistré</option>
+            <option value="EN_COURS">En Cours</option>
+            <option value="A_VALIDER">À Valider</option>
+            <option value="CLOTURE">Clôturé</option>
+            <option value="BLOQUE">Bloqué</option>
           </select>
         </div>
         <div className={styles.filterGroup}>
