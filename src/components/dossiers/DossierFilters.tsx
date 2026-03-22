@@ -30,6 +30,10 @@ export default function DossierFilters({
       } else {
         params.delete('q')
       }
+      
+      // OPTIMIZATION: Do not push if URL is identical to avoid Router saturation
+      if (params.toString() === searchParams.toString()) return;
+
       router.push(`${pathname}?${params.toString()}`)
     }, 400) // 400ms debounce
 
@@ -43,6 +47,10 @@ export default function DossierFilters({
     } else {
       params.delete(name)
     }
+
+    // OPTIMIZATION: Skip redundant redirection
+    if (params.toString() === searchParams.toString()) return;
+
     router.push(`${pathname}?${params.toString()}`)
   }
 
