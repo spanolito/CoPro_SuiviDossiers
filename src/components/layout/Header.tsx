@@ -1,9 +1,10 @@
 'use client'
 
-import { Search } from 'lucide-react'
+import { Search, Menu } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import styles from './layout.module.css'
 import { usePathname } from 'next/navigation'
+import { useSidebar } from './SidebarContext'
 
 interface HeaderProps {
   userName?: string
@@ -21,6 +22,7 @@ const titleMap: Record<string, string> = {
 
 export default function Header({ userName = 'Utilisateur', userRole = 'Membre du Conseil Syndical' }: HeaderProps) {
   const pathname = usePathname()
+  const { toggleSidebar } = useSidebar()
   const initials = userName.substring(0, 2).toUpperCase()
 
   // Find exact match or falls back to generic fallback
@@ -29,7 +31,12 @@ export default function Header({ userName = 'Utilisateur', userRole = 'Membre du
 
   return (
     <header className={styles.header}>
-      <div className={styles.headerTitle}>{title}</div>
+      <div className={styles.headerLeft}>
+        <button className={styles.menuBtn} onClick={toggleSidebar} aria-label="Toggle Menu">
+          <Menu size={24} />
+        </button>
+        <div className={styles.headerTitle}>{title}</div>
+      </div>
       <div className={styles.headerRight}>
         <div className={styles.searchBar}>
           <Search size={18} color="var(--text-secondary)" />
@@ -49,3 +56,4 @@ export default function Header({ userName = 'Utilisateur', userRole = 'Membre du
     </header>
   )
 }
+

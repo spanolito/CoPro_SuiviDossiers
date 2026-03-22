@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import Header from '@/components/layout/Header'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
+import { SidebarProvider } from '@/components/layout/SidebarContext'
 
 export default async function DashboardLayout({
   children,
@@ -21,17 +22,20 @@ export default async function DashboardLayout({
   else if (rawRole === 'Conseil syndical') userRole = 'Membre du CS'
 
   return (
-    <div className="app-container">
-      <Sidebar />
-      <div className="main-content">
-        <Header 
-          userName={userName} 
-          userRole={userRole} 
-        />
-        <main className="page-container">
-          {children}
-        </main>
+    <SidebarProvider>
+      <div className="app-container">
+        <Sidebar />
+        <div className="main-content">
+          <Header 
+            userName={userName} 
+            userRole={userRole} 
+          />
+          <main className="page-container">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }
+
