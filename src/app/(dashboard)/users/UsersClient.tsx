@@ -2,7 +2,7 @@
 
 import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateUserDetails } from './actions'
+import { updateUserDetails, deleteUser } from './actions'
 import { adminResetPassword } from '@/app/(dashboard)/profil/actions'
 import styles from './users.module.css'
 
@@ -39,6 +39,19 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
   const [resetPassword, setResetPassword] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
+
+  const handleDeleteUser = async (user: User) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer ${user.nomAffiche} ?`)) return
+    setLoadingId(user.id)
+    setAlert(null)
+    try {
+      const result = await deleteUser(user.id)
+      if (result?.error) { setAlert({ tone: 'error', message: result.error }); return }
+      setAlert({ tone: 'success', message: `Utilisateur ${user.nomAffiche} supprimé.` })
+      router.refresh()
+    } catch { setAlert({ tone: 'error', message: 'Impossible de supprimer l\'utilisateur.' }) }
+    finally { setLoadingId(null) }
+  }
 
   useEffect(() => {
     if (!selectedUser) {
@@ -174,6 +187,11 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                   {!isReadOnly && user.id !== currentAdminId && (
                     <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
                       Réinit. MDP
+                    </button>
+                  )}
+                  {!isReadOnly && user.id !== currentAdminId && (
+                    <button type="button" onClick={() => handleDeleteUser(user)} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--danger)' }} disabled={loadingId === user.id}>
+                      Supprimer
                     </button>
                   )}
                 </td>

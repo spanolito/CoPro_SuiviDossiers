@@ -120,3 +120,35 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
   revalidatePath('/users')
   return { success: true }
 }
+
+export async function deleteUser(userId: string): Promise<UpdateUserResult> {
+  const admin = await checkAdmin()
+  if (userId === admin.id) return { error: "Vous ne pouvez pas vous supprimer vous-même." }
+
+  try {
+    await prisma.utilisateur.delete({ where: { id: userId } })
+    
+    // Log action
+    await prisma.auditLog.create({
+      data: {
+        userId: admin.id as string,
+        action: 'USER_DELETE',
+        description: `Suppression de l'utilisateur ${userId}`,
+      }
+    })
+
+    await notifyAdmins(
+      `Suppression Utilisateur`,
+      `L'utilisateur ${userId} a été supprimé par ${admin.id}.`,
+      'LOG_SYSTEME' as any
+    )
+  } catch (error: any) {
+    if (error?.code === 'P2003') { 
+      return { error: "Cet utilisateur est lié à des dossiers ou des activités. Veuillez le 'Désactiver' à la place." }
+    }
+    return { error: "Impossible de supprimer l'utilisateur actuellement." }
+  }
+
+  revalidatePath('/users')
+  return { success: true }
+}
