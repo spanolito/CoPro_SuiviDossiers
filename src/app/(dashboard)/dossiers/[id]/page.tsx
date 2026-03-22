@@ -50,8 +50,12 @@ export default async function DossierDetailPage({
     const comment = formData.get('comment') as string
     
     if (title && status) {
+      const cookieStore = await cookies()
+      const token = cookieStore.get('auth_token')?.value
+      const payload = token ? await verifyToken(token) : null
+
       await prisma.etape.create({ data: { title, statut: status, comment, dossierId: id } })
-      await prisma.activityLog.create({ data: { action: 'ADDED_ETAPE', targetType: 'Dossier', targetId: id }})
+      await prisma.activityLog.create({ data: { action: 'ADDED_ETAPE', targetType: 'Dossier', targetId: id, userId: payload?.id as string }})
       revalidatePath(`/dossiers/${id}`)
     }
   }
@@ -61,11 +65,13 @@ export default async function DossierDetailPage({
     const content = formData.get('content') as string
     
     if (content) {
-      // Pour la démo, on assigne au premier admin
-      const admin = await prisma.user.findFirst({ where: { role: { name: 'Admin' } } })
-      if(admin) {
-        await prisma.commentaire.create({ data: { content, authorId: admin.id, dossierId: id } })
-        await prisma.activityLog.create({ data: { action: 'ADDED_COMMENT', targetType: 'Dossier', targetId: id, userId: admin.id }})
+      const cookieStore = await cookies()
+      const token = cookieStore.get('auth_token')?.value
+      const payload = token ? await verifyToken(token) : null
+
+      if(payload?.id) {
+        await prisma.commentaire.create({ data: { content, authorId: payload.id as string, dossierId: id } })
+        await prisma.activityLog.create({ data: { action: 'ADDED_COMMENT', targetType: 'Dossier', targetId: id, userId: payload.id as string }})
         revalidatePath(`/dossiers/${id}`)
       }
     }
@@ -74,11 +80,15 @@ export default async function DossierDetailPage({
   async function uploadDocument(formData: FormData) {
     'use server'
     const fileName = formData.get('fileName') as string
+    const fileUrl = formData.get('fileUrl') as string
     
-    if (fileName) {
-      // Simulation of upload saving
-      await prisma.document.create({ data: { name: fileName, type: 'PDF', url: '/uploads/mock.pdf', dossierId: id } })
-      await prisma.activityLog.create({ data: { action: 'UPLOADED_DOCUMENT', targetType: 'Dossier', targetId: id }})
+    if (fileName && fileUrl) {
+      const cookieStore = await cookies()
+      const token = cookieStore.get('auth_token')?.value
+      const payload = token ? await verifyToken(token) : null
+
+      await prisma.document.create({ data: { name: fileName, type: 'LIEN', url: fileUrl, dossierId: id } })
+      await prisma.activityLog.create({ data: { action: 'ADDED_DOCUMENT_LINK', targetType: 'Dossier', targetId: id, userId: payload?.id as string }})
       revalidatePath(`/dossiers/${id}`)
     }
   }
@@ -120,7 +130,6 @@ export default async function DossierDetailPage({
               documents: dossier.documents.length
             }} 
           />
-          <button className="btn btn-primary"><CheckCircle size={16} /> Résoudre</button>
         </div>
       </div>
 
@@ -247,11 +256,12 @@ export default async function DossierDetailPage({
               )}
             </div>
             
-            {/* Fake Upload Form */}
+            {/* Add Document Link Form */}
             <form action={uploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-color)', alignItems: 'center' }}>
               <UploadCloud size={24} color="var(--text-secondary)" />
-              <input type="text" name="fileName" className="form-control" placeholder="Nom du document mock" required style={{ width: '100%', fontSize: 12 }} />
-              <button type="submit" className="btn btn-outline" style={{ width: '100%', fontSize: 12 }}>Simuler l'Upload</button>
+              <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document (ex: Google Drive, Dropbox)" required style={{ width: '100%', fontSize: 13 }} />
+              <input type="text" name="fileName" className="form-control" placeholder="Nom du document" required style={{ width: '100%', fontSize: 13 }} />
+              <button type="submit" className="btn btn-outline" style={{ width: '100%', fontSize: 13 }}>Ajouter le lien</button>
             </form>
           </div>
 

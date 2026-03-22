@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
   // Public paths
   if (
     path === '/login' ||
+    path === '/register' ||
     path.startsWith('/_next') ||
     path.startsWith('/api/auth') ||
     path === '/favicon.ico'

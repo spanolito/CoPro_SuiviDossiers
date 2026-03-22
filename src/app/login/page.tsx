@@ -77,6 +77,13 @@ export default function LoginPage() {
         <button type="submit" className={`btn btn-primary ${styles.submitBtn}`} disabled={loading}>
           {loading ? 'Connexion en cours...' : 'Se connecter'}
         </button>
+        
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: 'var(--text-secondary)' }}>
+          Vous n'avez pas de compte ?{' '}
+          <a href="/register" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+            Créer un compte
+          </a>
+        </div>
       </form>
     </div>
   )

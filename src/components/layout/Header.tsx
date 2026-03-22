@@ -1,4 +1,5 @@
-import { Search, Bell } from 'lucide-react'
+import { Search } from 'lucide-react'
+import NotificationBell from './NotificationBell'
 import styles from './layout.module.css'
 
 interface HeaderProps {
@@ -19,10 +20,7 @@ export default function Header({ title, userName = 'Utilisateur', userRole = 'Co
           <input type="text" placeholder="Rechercher un dossier..." className={styles.searchInput} />
         </div>
         
-        <div style={{ position: 'relative', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-          <Bell size={20} />
-          <span style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, background: 'var(--danger)', borderRadius: '50%' }}></span>
-        </div>
+        <NotificationBell />
 
         <div className={styles.userProfile}>
           <div className={styles.avatar}>{initials}</div>

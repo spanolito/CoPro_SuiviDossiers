@@ -26,23 +26,25 @@ async function main() {
   
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@copro.com' },
-    update: {},
+    update: { status: 'ACTIVE' },
     create: {
       email: 'admin@copro.com',
       name: 'Syndic Admin',
       password: hashedPassword,
       roleId: adminRole.id,
+      status: 'ACTIVE',
     },
   })
   
   const conseilUser = await prisma.user.upsert({
     where: { email: 'conseil@copro.com' },
-    update: {},
+    update: { status: 'ACTIVE' },
     create: {
       email: 'conseil@copro.com',
       name: 'Membre du Conseil',
       password: hashedPassword,
       roleId: conseilRole.id,
+      status: 'ACTIVE',
     },
   })
 
@@ -57,8 +59,10 @@ async function main() {
 
   // Dossiers
   // 1. Infiltration garage
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-001' },
+    update: {},
+    create: {
       reference: 'DOS-2026-001',
       title: 'Infiltration mur nord du garage',
       description: 'Présence d\'eau signalée par le copropriétaire du lot 42 lors de fortes pluies.',
@@ -78,8 +82,10 @@ async function main() {
   })
 
   // 2. Fuite toiture
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-002' },
+    update: {},
+    create: {
       reference: 'DOS-2026-002',
       title: 'Fuite vérifiée sur toiture principale',
       description: 'L\'expert est passé, la réparation nécessite un devis du couvreur pour l\'AG.',
@@ -93,8 +99,10 @@ async function main() {
   })
 
   // 3. Litige assurance
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-003' },
+    update: {},
+    create: {
       reference: 'DOS-2026-003',
       title: 'Litige assurance dégât des eaux appt 12',
       description: 'L\'assurance refuse la prise en charge de la recherche de fuite.',
@@ -108,8 +116,10 @@ async function main() {
   })
 
   // 4. Façade devis
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-004' },
+    update: {},
+    create: {
       reference: 'DOS-2026-004',
       title: 'Devis réfection façade',
       description: 'Besoin de 3 devis pour la prochaine AG concernant le ravalement côté rue.',
@@ -121,8 +131,10 @@ async function main() {
   })
 
   // 5. Panne éclairage
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-005' },
+    update: {},
+    create: {
       reference: 'DOS-2026-005',
       title: 'Panne éclairage couloir 2ème étage',
       description: 'Tout le couloir est dans le noir.',
@@ -140,8 +152,10 @@ async function main() {
   })
 
   // 6. Décision AG
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-006' },
+    update: {},
+    create: {
       reference: 'DOS-2026-006',
       title: 'Validation devis ascenseur par AG',
       description: 'Mise aux normes décidée à la dernière AG. Attente signature contrat.',
@@ -152,8 +166,10 @@ async function main() {
   })
 
   // 7. Panne chaudière chauffage
-  await prisma.dossier.create({
-    data: {
+  await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-007' },
+    update: {},
+    create: {
       reference: 'DOS-2026-007',
       title: 'Arrêt de la chaudière collective',
       description: 'Code erreur E42 sur la chaudière principale. Plus d\'eau chaude.',

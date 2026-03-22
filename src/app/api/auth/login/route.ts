@@ -22,6 +22,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
     }
 
+    if (user.status === 'PENDING') {
+      return NextResponse.json({ error: 'Votre compte est en attente de validation par un administrateur.' }, { status: 403 })
+    }
+
+    if (user.status === 'DISABLED') {
+      return NextResponse.json({ error: 'Votre compte a été désactivé.' }, { status: 403 })
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password)
 
     if (!passwordMatch) {

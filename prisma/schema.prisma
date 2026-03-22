@@ -22,6 +22,8 @@ model User {
   roleId    String
   role      Role     @relation(fields: [roleId], references: [id])
   
+  status    String   @default("PENDING") // PENDING, ACTIVE, DISABLED
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -29,6 +31,7 @@ model User {
   commentaires     Commentaire[]
   activityLogs     ActivityLog[]
   archivedDossiers Dossier[] @relation("ArchivedDossiers")
+  notifications    Notification[]
 }
 
 model Category {
@@ -123,4 +126,15 @@ model ActivityLog {
   
   userId      String?
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
