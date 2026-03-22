@@ -20,27 +20,39 @@ const getStatusLabel = (s: string) => {
 }
 
 export default async function DashboardPage() {
-  const dossiers = await prisma.dossier.findMany({
-    include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true },
-    where: { archived: false }
-  })
+  const [dossiers, users, intervenants, activityLogs] = await Promise.all([
+    prisma.dossier.findMany({
+      include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true },
+      where: { archived: false }
+    }),
+    prisma.utilisateur.findMany({
+      where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] } },
+      include: { dossiersResponsableCS: true }
+    }),
+    prisma.intervenant.findMany({
+      where: { actif: true },
+      include: { dossiersPrestataire: true, dossiersSyndic: true, dossiersAction: true }
+    }),
+    prisma.dossierActivite.findMany({
+      take: 6,
+      orderBy: { createdAt: 'desc' },
+      include: { auteur: true }
+    })
+  ])
 
   // Metrics
   const countNew = dossiers.filter((d: any) => d.statut === 'ENREGISTRE').length
   const countAssigned = dossiers.filter((d: any) => d.statut === 'EN_COURS').length
   const countToValidate = dossiers.filter((d: any) => d.statut === 'A_VALIDER').length
-  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length // Ideally filter last 30 days if needed
+  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
   const countBlocked = dossiers.filter((d: any) => d.statut === 'BLOQUE').length
 
-  // Prioritized Actions (Max 5)
-  // Logic: Blocked or Clique Priority or To Validate or Unassigned
   const prioritizedDossiers = dossiers
     .filter((d: any) => 
       (d.statut === 'BLOQUE' || d.priorite === 'CRITIQUE' || d.statut === 'A_VALIDER' || !d.responsableCSId) && 
       d.statut !== 'CLOTURE'
     )
     .sort((a: any, b: any) => {
-      // Sort: Critique first, then Blocked, then ToValidate
       if (a.priorite === 'CRITIQUE' && b.priorite !== 'CRITIQUE') return -1;
       if (a.priorite !== 'CRITIQUE' && b.priorite === 'CRITIQUE') return 1;
       if (a.statut === 'BLOQUE' && b.statut !== 'BLOQUE') return -1;
@@ -57,31 +69,15 @@ export default async function DashboardPage() {
     return null
   }
 
-  // Assignee Breakdown
-  const users = await prisma.utilisateur.findMany({
-    where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] } },
-    include: { dossiersResponsableCS: true }
-  })
   const staffBreakdown = users.map((u: any) => ({
     name: u.nomAffiche,
     count: u.dossiersResponsableCS.filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
   })).sort((a: any, b: any) => b.count - a.count)
 
-  const intervenants = await prisma.intervenant.findMany({
-    where: { actif: true },
-    include: { dossiersPrestataire: true, dossiersSyndic: true, dossiersAction: true }
-  })
   const intervenantsBreakdown = intervenants.map((i: any) => ({
     name: i.nom,
-    count: [...i.dossiersPrestataire, ...i.dossiersAction].filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
+    count: [...i.dossiersPrestataire, ...i.dossiersSyndic, ...i.dossiersAction].filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
   })).sort((a: any, b: any) => b.count - a.count).filter((x: any) => x.count > 0)
-
-  // Recent Streams
-  const activityLogs = await prisma.dossierActivite.findMany({
-    take: 6,
-    orderBy: { createdAt: 'desc' },
-    include: { auteur: true }
-  })
 
   const formatTime = (date: Date) => {
     const min = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000)
