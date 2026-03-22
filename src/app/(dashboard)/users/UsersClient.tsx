@@ -93,7 +93,6 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
       const result = await updateUserDetails({
         userId: selectedUser.id,
         name: formValues.name,
-        email: formValues.email,
         role: formValues.role,
         status: formValues.status
       })
@@ -199,8 +198,8 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                 </div>
 
                 <div className={styles.formField}>
-                  <label className={styles.formLabel} htmlFor={`email-${selectedUser.id}`}>Email</label>
-                  <input id={`email-${selectedUser.id}`} name="email" type="email" value={formValues.email} onChange={(e) => setFormValues(prev => ({ ...prev, email: e.target.value }))} className={styles.formInput} />
+                  <label className={styles.formLabel}>Email (Non modifiable)</label>
+                  <input value={formValues.email} className={styles.formInput} disabled style={{ background: 'var(--background-secondary)', cursor: 'not-allowed' }} />
                 </div>
 
                 <div className={styles.formField}>

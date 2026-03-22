@@ -52,6 +52,44 @@ export async function changeMyPassword(currentPassword: string, newPassword: str
   return { success: true }
 }
 
+export async function changeMyEmail(currentPassword: string, newEmail: string): Promise<Result> {
+  const payload = await getAuthUser()
+
+  if (!currentPassword || !newEmail) {
+    return { error: 'Tous les champs sont requis.' }
+  }
+
+  const trimmedEmail = newEmail.trim()
+  if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    return { error: 'Veuillez saisir un email valide.' }
+  }
+
+  const user = await prisma.utilisateur.findUnique({ where: { id: payload.id as string } })
+  if (!user) return { error: 'Utilisateur introuvable.' }
+
+  const isValid = await bcrypt.compare(currentPassword, user.passwordHash)
+  if (!isValid) {
+    return { error: 'Le mot de passe actuel est incorrect.' }
+  }
+
+  if (trimmedEmail === user.email) {
+    return { error: 'Le nouvel email doit être différent de l\'actuel.' }
+  }
+
+  try {
+    await prisma.utilisateur.update({
+      where: { id: user.id },
+      data: { email: trimmedEmail }
+    })
+    return { success: true }
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { error: 'Cet email est déjà utilisé par un autre utilisateur.' }
+    }
+    return { error: 'Erreur lors de la mise à jour de l\'email.' }
+  }
+}
+
 export async function adminResetPassword(targetUserId: string, temporaryPassword: string): Promise<Result> {
   const payload = await getAuthUser()
 

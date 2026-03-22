@@ -51,12 +51,6 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     updates.nomAffiche = trimmedName
   }
 
-  if (payload.email !== undefined) {
-    const trimmedEmail = payload.email.trim()
-    if (!trimmedEmail) return { error: "L'email est requis." }
-    updates.email = trimmedEmail
-  }
-
   let resolvedRole: string = user.role
   if (payload.role !== undefined) {
     if (!ALLOWED_ROLES.includes(payload.role as Role)) {

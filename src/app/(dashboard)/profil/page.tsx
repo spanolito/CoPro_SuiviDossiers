@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import styles from './profil.module.css'
 import PasswordChangeForm from './PasswordChangeForm'
+import EmailChangeForm from './EmailChangeForm'
 
 const ROLE_LABELS: Record<string, string> = {
   PRESIDENT_CS: 'Président du Conseil Syndical',
@@ -62,6 +63,11 @@ export default async function ProfilPage() {
       <div className={styles.profileCard}>
         <h2 className={styles.sectionTitle}>🔒 Changer mon mot de passe</h2>
         <PasswordChangeForm />
+      </div>
+
+      <div className={styles.profileCard}>
+        <h2 className={styles.sectionTitle}>📧 Changer mon adresse email</h2>
+        <EmailChangeForm currentEmail={user.email} />
       </div>
     </div>
   )
