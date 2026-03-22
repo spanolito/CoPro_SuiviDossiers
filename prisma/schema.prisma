@@ -28,6 +28,7 @@ model User {
   dossiersAssigned Dossier[] @relation("Assignee")
   commentaires     Commentaire[]
   activityLogs     ActivityLog[]
+  archivedDossiers Dossier[] @relation("ArchivedDossiers")
 }
 
 model Category {
@@ -71,6 +72,11 @@ model Dossier {
   etapes            Etape[]
   commentaires      Commentaire[]
   documents         Document[]
+
+  archived         Boolean   @default(false)
+  archivedAt       DateTime?
+  archivedById     String?
+  archivedBy       User?     @relation("ArchivedDossiers", fields: [archivedById], references: [id])
 }
 
 model Etape {

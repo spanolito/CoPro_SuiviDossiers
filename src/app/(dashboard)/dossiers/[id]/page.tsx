@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { ArrowLeft, FileText, Calendar, User, MapPin, Edit, CheckCircle, MessageSquare, UploadCloud, Activity } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
+import { verifyToken } from '@/lib/auth'
+import DossierActions from './DossierActions'
 
 export default async function DossierDetailPage({
   params,
@@ -11,6 +14,13 @@ export default async function DossierDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+
+  // Get User Role from Auth Token
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  const payload = token ? await verifyToken(token) : null
+  const isAdmin = payload?.role === 'Admin'
+
   
   const dossier = await prisma.dossier.findUnique({
     where: { id },
@@ -100,6 +110,16 @@ export default async function DossierDetailPage({
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <Link href={`/dossiers/${id}/edit`} className="btn btn-outline"><Edit size={16} /> Éditer</Link>
+          <DossierActions 
+            dossierId={id} 
+            isAdmin={isAdmin} 
+            isArchived={dossier.archived} 
+            counts={{
+              etapes: dossier.etapes.length,
+              commentaires: dossier.commentaires.length,
+              documents: dossier.documents.length
+            }} 
+          />
           <button className="btn btn-primary"><CheckCircle size={16} /> Résoudre</button>
         </div>
       </div>

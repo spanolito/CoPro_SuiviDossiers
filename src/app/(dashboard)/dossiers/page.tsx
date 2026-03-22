@@ -7,9 +7,12 @@ import { Plus } from 'lucide-react'
 export default async function DossiersListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; priority?: string }>
+  searchParams: Promise<{ q?: string; status?: string; priority?: string; archived_status?: string }>
 }) {
-  const { q, status, priority } = await searchParams
+  const { q, status, priority, archived_status } = await searchParams
+
+  const activeFilter = archived_status || 'active'
+
 
   const whereClause: any = {}
   if (q) {
@@ -20,6 +23,15 @@ export default async function DossiersListPage({
   }
   if (status) whereClause.statut = status
   if (priority) whereClause.priorite = priority
+
+  if (activeFilter === 'archived') {
+    whereClause.archived = true
+  } else if (activeFilter === 'all') {
+    // Show all, don't filter on archived
+  } else {
+    whereClause.archived = false // Default to active only
+  }
+
 
   const dossiers = await prisma.dossier.findMany({
     where: whereClause,
@@ -94,6 +106,14 @@ export default async function DossiersListPage({
             <option value="basse">Basse</option>
           </select>
         </div>
+        <div className={styles.filterGroup}>
+          <label htmlFor="archived_status">Affichage</label>
+          <select id="archived_status" name="archived_status" className="form-control" defaultValue={activeFilter}>
+            <option value="active">Actifs uniquement</option>
+            <option value="archived">Archivés uniquement</option>
+            <option value="all">Tous</option>
+          </select>
+        </div>
         <button type="submit" className="btn btn-outline" style={{ height: '40px' }}>Filtrer</button>
       </form>
 
@@ -126,9 +146,10 @@ export default async function DossiersListPage({
                 </td>
                 <td>{d.category.name}</td>
                 <td>
-                  <span className={`badge`} style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                  <span className={`badge`} style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', marginRight: 4 }}>
                     {getStatusLabel(d.statut)}
                   </span>
+                  {d.archived && <span className="badge" style={{ background: 'var(--warning)', color: 'black' }}>Archivé</span>}
                 </td>
                 <td>
                   <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
