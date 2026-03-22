@@ -21,7 +21,7 @@ export default async function DashboardLayout({
   else if (rawRole === 'Conseil syndical') userRole = 'Membre du CS'
 
   return (
-    <>
+    <div className="app-container">
       <Sidebar />
       <div className="main-content">
         <Header 
@@ -33,6 +33,6 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
-    </>
+    </div>
   )
 }

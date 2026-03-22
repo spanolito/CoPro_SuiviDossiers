@@ -19,7 +19,7 @@ type UpdateUserPayload = {
   status?: string
 }
 
-type UpdateUserResult = { success: true } | { error: string }
+type UpdateUserResult = { success?: true; error?: string }
 
 async function checkAdmin() {
   const cookieStore = await cookies()
@@ -56,7 +56,7 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     return { error: 'Utilisateur introuvable.' }
   }
 
-  const updates: Prisma.UserUpdateInput = {}
+  const updates: Prisma.UserUncheckedUpdateInput = {}
 
   if (payload.name !== undefined) {
     const trimmedName = payload.name.trim()
@@ -69,7 +69,7 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
   if (payload.email !== undefined) {
     const trimmedEmail = payload.email.trim()
     if (!trimmedEmail) {
-      return { error: 'L\\'email est requis.' }
+      return { error: "L'email est requis." }
     }
     updates.email = trimmedEmail
   }
@@ -124,7 +124,7 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
       return { error: 'Cet email est déjà utilisé.' }
     }
     console.error(error)
-    return { error: 'Impossible de mettre à jour l\\'utilisateur pour le moment.' }
+    return { error: "Impossible de mettre à jour l'utilisateur pour le moment." }
   }
 
   revalidatePath('/users')

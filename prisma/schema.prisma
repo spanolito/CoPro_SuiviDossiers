@@ -52,8 +52,12 @@ model Dossier {
   amount            Float?
 
   // Localisation
-  building          String?
+  building          String?     @default("Le Bâtiment Unique")
   lotZone           String?
+  niveau            String?
+  localisation      String?
+  typeLocalisation  String?
+  precision         String?
 
   // Relations
   categoryId        String

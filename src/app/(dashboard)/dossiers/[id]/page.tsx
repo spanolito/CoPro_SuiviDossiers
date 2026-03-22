@@ -169,7 +169,17 @@ export default async function DossierDetailPage({
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Localisation</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MapPin size={16} color="var(--text-secondary)" /> {dossier.building} {dossier.lotZone ? `- ${dossier.lotZone}` : ''}
+                  <MapPin size={16} color="var(--text-secondary)" />
+                  {dossier.typeLocalisation ? (
+                    <>
+                      <span style={{ fontWeight: 500 }}>{dossier.typeLocalisation}</span>
+                      {dossier.niveau && ` - ${dossier.niveau}`}
+                      {dossier.localisation && ` (${dossier.localisation})`}
+                      {dossier.precision && ` - ${dossier.precision}`}
+                    </>
+                  ) : (
+                    <>{dossier.building} {dossier.lotZone ? `- ${dossier.lotZone}` : ''}</>
+                  )}
                 </span>
               </div>
               <div className={styles.infoItem}>

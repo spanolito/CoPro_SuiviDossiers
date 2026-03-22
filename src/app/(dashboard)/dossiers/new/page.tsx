@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import styles from './new-dossier.module.css'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import LocalisationClient from '@/components/dossiers/LocalisationClient'
 
 export default async function NewDossierPage() {
   const categories = await prisma.category.findMany()
@@ -15,8 +16,11 @@ export default async function NewDossierPage() {
     const categoryId = formData.get('categoryId') as string
     const priorite = formData.get('priorite') as string
     const description = formData.get('description') as string
-    const building = formData.get('building') as string
-    const lotZone = formData.get('lotZone') as string
+    const typeLocalisation = formData.get('typeLocalisation') as string
+    const niveau = formData.get('niveau') as string
+    const localisation = formData.get('localisation') as string
+    const precision = formData.get('precision') as string
+    
     const responsableCSId = formData.get('responsableCSId') as string
     const intervenantId = formData.get('intervenantId') as string
 
@@ -35,8 +39,10 @@ export default async function NewDossierPage() {
         description,
         statut: 'ENREGISTRE',
         priorite,
-        building,
-        lotZone,
+        typeLocalisation,
+        niveau,
+        localisation,
+        precision,
         categoryId,
         responsableCSId: responsableCSId || null,
         intervenantId: intervenantId || null,
@@ -64,7 +70,7 @@ export default async function NewDossierPage() {
             <label htmlFor="categoryId">Catégorie *</label>
             <select id="categoryId" name="categoryId" className="form-control" required>
               <option value="">Sélectionner une catégorie</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           
@@ -86,26 +92,19 @@ export default async function NewDossierPage() {
 
         <h2 className={styles.sectionTitle}>Localisation & Assignation</h2>
         <div className={styles.formGrid}>
-          <div className="form-group">
-            <label htmlFor="building">Bâtiment</label>
-            <input type="text" id="building" name="building" className="form-control" placeholder="ex: Bâtiment A" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="lotZone">Lot / Zone</label>
-            <input type="text" id="lotZone" name="lotZone" className="form-control" placeholder="ex: 3ème étage, parking" />
-          </div>
+          <LocalisationClient />
           <div className="form-group">
             <label htmlFor="responsableCSId">Responsable CS *</label>
             <select id="responsableCSId" name="responsableCSId" className="form-control" required>
               <option value="">Sélectionner</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {users.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label htmlFor="intervenantId">Responsable de l'action *</label>
             <select id="intervenantId" name="intervenantId" className="form-control" required>
               <option value="">Sélectionner</option>
-              {intervenants.map(i => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
+              {intervenants.map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
             </select>
           </div>
         </div>

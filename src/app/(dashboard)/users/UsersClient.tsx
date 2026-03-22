@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, MouseEvent, useEffect, useState } from 'react'
-import { refresh } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { updateUserDetails } from './actions'
 import styles from './users.module.css'
 
@@ -24,6 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
 const formatRoleName = (roleName: string) => ROLE_LABELS[roleName] ?? roleName
 
 export default function UsersClient({ users, roles, currentAdminId }: { users: User[]; roles: Role[]; currentAdminId: string }) {
+  const router = useRouter()
   const defaultRoleId = roles[0]?.id ?? ''
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [alert, setAlert] = useState<Alert | null>(null)
@@ -82,7 +83,7 @@ export default function UsersClient({ users, roles, currentAdminId }: { users: U
         return
       }
       setAlert({ tone: 'success', message: `Statut de ${user.name} mis à jour.` })
-      refresh()
+      router.refresh()
     } catch (error) {
       console.error(error)
       setAlert({ tone: 'error', message: 'Impossible de mettre à jour le statut.' })
@@ -104,7 +105,7 @@ export default function UsersClient({ users, roles, currentAdminId }: { users: U
         return
       }
       setAlert({ tone: 'success', message: `Rôle de ${user.name} mis à jour.` })
-      refresh()
+      router.refresh()
     } catch (error) {
       console.error(error)
       setAlert({ tone: 'error', message: 'Impossible de mettre à jour le rôle.' })
@@ -152,10 +153,10 @@ export default function UsersClient({ users, roles, currentAdminId }: { users: U
 
       setAlert({ tone: 'success', message: 'Utilisateur mis à jour avec succès.' })
       setSelectedUser(null)
-      refresh()
+      router.refresh()
     } catch (error) {
       console.error(error)
-      setModalError('Impossible d\\'enregistrer les modifications.')
+      setModalError("Impossible d'enregistrer les modifications.")
     } finally {
       setIsSubmitting(false)
     }

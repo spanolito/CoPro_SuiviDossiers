@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { StatutDossier } from '../actions'
+import LocalisationClient from '@/components/dossiers/LocalisationClient'
 
 export default async function EditDossierPage({
   params,
@@ -31,8 +32,11 @@ export default async function EditDossierPage({
       throw new Error('Statut invalide.')
     }
     const description = formData.get('description') as string
-    const building = formData.get('building') as string
-    const lotZone = formData.get('lotZone') as string
+    const typeLocalisation = formData.get('typeLocalisation') as string
+    const niveau = formData.get('niveau') as string
+    const localisation = formData.get('localisation') as string
+    const precision = formData.get('precision') as string
+    
     const responsableCSId = formData.get('responsableCSId') as string
     const intervenantId = formData.get('intervenantId') as string
     const typeInstallation = formData.get('typeInstallation') as string
@@ -45,8 +49,10 @@ export default async function EditDossierPage({
         description,
         statut,
         priorite,
-        building,
-        lotZone,
+        typeLocalisation,
+        niveau,
+        localisation,
+        precision,
         categoryId,
         responsableCSId: responsableCSId || null,
         intervenantId: intervenantId || null,
@@ -75,7 +81,7 @@ export default async function EditDossierPage({
           <div className="form-group">
             <label htmlFor="categoryId">Catégorie *</label>
             <select id="categoryId" name="categoryId" className="form-control" defaultValue={dossier.categoryId} required>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           
@@ -109,26 +115,24 @@ export default async function EditDossierPage({
 
         <h2 className={styles.sectionTitle}>Localisation & Assignation</h2>
         <div className={styles.formGrid}>
-          <div className="form-group">
-            <label htmlFor="building">Bâtiment</label>
-            <input type="text" id="building" name="building" className="form-control" defaultValue={dossier.building || ''} />
-          </div>
-          <div className="form-group">
-            <label htmlFor="lotZone">Lot / Zone</label>
-            <input type="text" id="lotZone" name="lotZone" className="form-control" defaultValue={dossier.lotZone || ''} />
-          </div>
+          <LocalisationClient 
+            initialTypeLoc={dossier.typeLocalisation || ''}
+            initialNiveau={dossier.niveau || ''}
+            initialLoc={dossier.localisation || ''}
+            initialPrecision={dossier.precision || ''}
+          />
           <div className="form-group">
             <label htmlFor="responsableCSId">Responsable CS *</label>
             <select id="responsableCSId" name="responsableCSId" className="form-control" defaultValue={dossier.responsableCSId || ''} required>
               <option value="">Sélectionner</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {users.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label htmlFor="intervenantId">Responsable de l'action *</label>
             <select id="intervenantId" name="intervenantId" className="form-control" defaultValue={dossier.intervenantId || ''} required>
               <option value="">Sélectionner</option>
-              {intervenants.map(i => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
+              {intervenants.map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.type})</option>)}
             </select>
           </div>
         </div>

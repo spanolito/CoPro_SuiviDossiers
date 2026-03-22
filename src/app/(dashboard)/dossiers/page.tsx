@@ -136,7 +136,13 @@ export default async function DossiersListPage({
                 <td style={{ fontWeight: 600 }}>{d.reference}</td>
                 <td>
                   <div style={{ fontWeight: 500 }}>{d.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{d.building} {d.lotZone ? `- ${d.lotZone}` : ''}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {d.typeLocalisation ? (
+                      <>{d.niveau} {d.localisation ? `(${d.localisation})` : ''}</>
+                    ) : (
+                      <>{d.building} {d.lotZone ? `- ${d.lotZone}` : ''}</>
+                    )}
+                  </div>
                 </td>
                 <td>{d.category.name}</td>
                 <td>
