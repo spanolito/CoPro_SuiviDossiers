@@ -33,8 +33,11 @@
   --neutral-bg: #F1F3F5;
   --neutral-text: #495057;
 
-  --bloque-bg: #FFF0F6;
-  --bloque-text: #D63384;
+  --urgent-bg: #FFE9E9;
+  --urgent-text: #FA5252;
+
+  --bloque-bg: #FCE4EC;
+  --bloque-text: #880E4F;
 
   --radius-sm: 8px;
   --radius-md: 12px;

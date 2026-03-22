@@ -19,6 +19,13 @@ const getStatusLabel = (s: string) => {
   return labels[s] || s
 }
 
+const EmptyState = ({ message }: { message: string }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', color: 'var(--text-secondary)', gap: '8px' }}>
+    <CircleDot size={24} style={{ opacity: 0.4 }} />
+    <span style={{ fontSize: '13px', fontStyle: 'italic' }}>{message}</span>
+  </div>
+)
+
 export default async function DashboardPage() {
   const [dossiers, users, intervenants, activityLogs] = await Promise.all([
     prisma.dossier.findMany({
@@ -41,11 +48,11 @@ export default async function DashboardPage() {
   ])
 
   // Metrics
-  const countNew = dossiers.filter((d: any) => d.statut === 'ENREGISTRE').length
-  const countAssigned = dossiers.filter((d: any) => d.statut === 'EN_COURS').length
-  const countToValidate = dossiers.filter((d: any) => d.statut === 'A_VALIDER').length
-  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
+  const countUrgent = dossiers.filter((d: any) => d.priorite === 'CRITIQUE' && d.statut !== 'CLOTURE').length
+  const countEnAttente = dossiers.filter((d: any) => d.statut === 'ENREGISTRE' || d.statut === 'AFFECTE').length
+  const countEnCours = dossiers.filter((d: any) => d.statut === 'EN_COURS' || d.statut === 'A_VALIDER').length
   const countBlocked = dossiers.filter((d: any) => d.statut === 'BLOQUE').length
+  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
 
   const prioritizedDossiers = dossiers
     .filter((d: any) => 
@@ -91,33 +98,33 @@ export default async function DashboardPage() {
     <div style={{ paddingBottom: 40 }}>
       {/* 1. Vue Rapide / Metrics */}
       <div className={styles.metricsRow}>
-        <Link href="/dossiers?status=ENREGISTRE" className={styles.metricCard} style={{ borderTopColor: 'var(--info)' }}>
+        <Link href="/dossiers?priority=CRITIQUE" className={styles.metricCard} style={{ borderTopColor: 'var(--urgent-text)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className={styles.metricTitle}>Enregistrés</span>
-            <CircleDot size={18} color="var(--info)" />
+            <span className={styles.metricTitle}>Urgents</span>
+            <AlertCircle size={18} color="var(--urgent-text)" />
           </div>
-          <span className={styles.metricValue}>{countNew}</span>
+          <span className={styles.metricValue} style={{ color: 'var(--urgent-text)' }}>{countUrgent}</span>
+        </Link>
+        <Link href="/dossiers?status=ENREGISTRE" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className={styles.metricTitle}>En attente</span>
+            <Clock size={18} color="var(--warning)" />
+          </div>
+          <span className={styles.metricValue}>{countEnAttente}</span>
         </Link>
         <Link href="/dossiers?status=EN_COURS" className={styles.metricCard} style={{ borderTopColor: 'var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>En cours</span>
             <Clock size={18} color="var(--primary)" />
           </div>
-          <span className={styles.metricValue}>{countAssigned}</span>
+          <span className={styles.metricValue}>{countEnCours}</span>
         </Link>
-        <Link href="/dossiers?status=A_VALIDER" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className={styles.metricTitle}>À valider</span>
-            <AlertCircle size={18} color="var(--warning)" />
-          </div>
-          <span className={styles.metricValue}>{countToValidate}</span>
-        </Link>
-        <Link href="/dossiers?status=BLOQUE" className={styles.metricCard} style={{ borderTopColor: 'var(--danger)' }}>
+        <Link href="/dossiers?status=BLOQUE" className={styles.metricCard} style={{ borderTopColor: 'var(--bloque-text)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>Bloqués</span>
-            <PauseCircle size={18} color="var(--danger)" />
+            <PauseCircle size={18} color="var(--bloque-text)" />
           </div>
-          <span className={styles.metricValue}>{countBlocked}</span>
+          <span className={styles.metricValue} style={{ color: 'var(--bloque-text)' }}>{countBlocked}</span>
         </Link>
         <Link href="/dossiers?status=CLOTURE" className={styles.metricCard} style={{ borderTopColor: 'var(--success)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -145,18 +152,15 @@ export default async function DashboardPage() {
                 <thead>
                   <tr>
                     <th>Dossier</th>
-                    <th>Priorité / Statut</th>
+                    <th>Priorité</th>
+                    <th>Statut</th>
                     <th>Responsable</th>
                     <th>Échéance</th>
                   </tr>
                 </thead>
                 <tbody>
                   {prioritizedDossiers.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)' }}>
-                        Aucune action urgente requise.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={5} style={{ padding: 0 }}><EmptyState message="Aucune action prioritized requise." /></td></tr>
                   ) : prioritizedDossiers.map((d: any) => (
                     <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
                       <td>
@@ -166,14 +170,15 @@ export default async function DashboardPage() {
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          {getReasonBadge(d)}
-                        </div>
+                        <span className={`badge ${d.priorite === 'CRITIQUE' ? 'badge-urgent' : d.priorite === 'HAUTE' ? 'badge-high' : 'badge-normal'}`}>
+                          {getPriorityLabel(d.priorite)}
+                        </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontWeight: 500 }}>{d.responsableCS?.nomAffiche || '-'}</span>
-                        </div>
+                        <span className="badge badge-neutral" style={{ opacity: 0.85 }}>{getStatusLabel(d.statut)}</span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13 }}>{d.responsableCS?.nomAffiche || '-'}</span>
                       </td>
                       <td>
                         {d.dateEcheance ? (
@@ -194,9 +199,14 @@ export default async function DashboardPage() {
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><AlertCircle size={18} color="var(--primary)" /> Actions récentes</div>
             <div className={styles.timelineStream}>
-              {activityLogs.map((log: any) => (
+              {activityLogs.length === 0 ? (
+                <EmptyState message="Aucune activité récente." />
+              ) : activityLogs.map((log: any) => (
                 <div key={log.id} className={styles.timelineItem}>
-                  <div className={styles.timelineDot}></div>
+                  <div className={styles.timelineDot} style={{ 
+                    backgroundColor: log.resume?.includes('détecté') || log.resume?.includes('cree') ? 'var(--info)' : 
+                                    log.resume?.includes('bloqué') ? 'var(--danger-text)' : 'var(--primary)' 
+                  }}></div>
                   <div className={styles.timelineContent}>
                     <span className={styles.timelineText}>{log.resume}</span>
                     <span className={styles.timelineTime}>{log.auteur?.nomAffiche} · {formatTime(log.createdAt)}</span>
@@ -213,7 +223,9 @@ export default async function DashboardPage() {
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Suivi CS</div>
             <div className={styles.assigneeList}>
-              {staffBreakdown.map((staff: any, index: number) => (
+              {staffBreakdown.length === 0 ? (
+                <EmptyState message="Aucun membre actif." />
+              ) : staffBreakdown.map((staff: any, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar}>{getInitials(staff.name)}</div>
@@ -228,7 +240,9 @@ export default async function DashboardPage() {
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Intervenants Actifs</div>
             <div className={styles.assigneeList}>
-              {intervenantsBreakdown.map((intv: any, index: number) => (
+              {intervenantsBreakdown.length === 0 ? (
+                <EmptyState message="Aucun intervenant administratif." />
+              ) : intervenantsBreakdown.map((intv: any, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar} style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>{getInitials(intv.name)}</div>
