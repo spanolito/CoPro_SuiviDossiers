@@ -3,6 +3,11 @@ import styles from './dashboard.module.css'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2, CircleDot, Clock, LayoutGrid, PauseCircle, Users, Calendar } from 'lucide-react'
 import ClickableRow from '@/components/ui/ClickableRow'
+import { computePriority, isOverdue, getAlerts } from '@/lib/utils/priority'
+import AlertsCard from '@/components/dashboard/AlertsCard'
+import { FileText } from 'lucide-react'
+import type { StaticImageData } from 'next/image'
+
 
 const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
@@ -47,34 +52,53 @@ export default async function DashboardPage() {
     })
   ])
 
-  // Metrics
-  const countUrgent = dossiers.filter((d: any) => d.priorite === 'CRITIQUE' && d.statut !== 'CLOTURE').length
+  // alerts
+  const alerts: any[] = []
+  dossiers.forEach((d: any) => {
+    const items = getAlerts(d)
+    items.forEach((type: string) => {
+      alerts.push({
+        id: d.id,
+        titre: d.titre,
+        reference: d.reference,
+        type: type.toUpperCase() as any
+      })
+    })
+  })
+
+  const countUrgent = dossiers.filter((d: any) => computePriority(d) === 'CRITIQUE' && d.statut !== 'CLOTURE').length
   const countEnAttente = dossiers.filter((d: any) => d.statut === 'ENREGISTRE' || d.statut === 'AFFECTE').length
   const countEnCours = dossiers.filter((d: any) => d.statut === 'EN_COURS' || d.statut === 'A_VALIDER').length
   const countBlocked = dossiers.filter((d: any) => d.statut === 'BLOQUE').length
   const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
 
   const prioritizedDossiers = dossiers
-    .filter((d: any) => 
-      (d.statut === 'BLOQUE' || d.priorite === 'CRITIQUE' || d.statut === 'A_VALIDER' || !d.responsableCSId) && 
-      d.statut !== 'CLOTURE'
-    )
+    .map((d: any) => ({ ...d, computedPriority: computePriority(d) }))
+    .filter((d: any) => d.computedPriority !== 'FAIBLE' && d.statut !== 'CLOTURE')
     .sort((a: any, b: any) => {
-      if (a.priorite === 'CRITIQUE' && b.priorite !== 'CRITIQUE') return -1;
-      if (a.priorite !== 'CRITIQUE' && b.priorite === 'CRITIQUE') return 1;
-      if (a.statut === 'BLOQUE' && b.statut !== 'BLOQUE') return -1;
-      if (a.statut !== 'BLOQUE' && b.statut === 'BLOQUE') return 1;
-      return 0;
+      const priorityOrder: Record<'CRITIQUE' | 'HAUTE' | 'NORMALE' | 'FAIBLE', number> = { CRITIQUE: 0, HAUTE: 1, NORMALE: 2, FAIBLE: 3 }
+      const orderA = priorityOrder[a.computedPriority as keyof typeof priorityOrder]
+      const orderB = priorityOrder[b.computedPriority as keyof typeof priorityOrder]
+      
+      if (orderA !== orderB) {
+        return orderA - orderB
+      }
+      if (a.dateEcheance && b.dateEcheance) {
+        return new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime()
+      }
+      return 0
     })
-    .slice(0, 5);
+    .slice(0, 7);
+
 
   const getReasonBadge = (d: any) => {
     if (d.statut === 'BLOQUE') return <span className="badge badge-bloque">Bloqué</span>
-    if (d.priorite === 'CRITIQUE') return <span className="badge badge-urgent">Critique</span>
+    if (d.computedPriority === 'CRITIQUE') return <span className="badge badge-urgent">Critique</span>
     if (d.statut === 'A_VALIDER') return <span className="badge badge-warning">À Valider</span>
     if (!d.responsableCSId) return <span className="badge badge-neutral">Non assigné</span>
     return null
   }
+
 
   const staffBreakdown = users.map((u: any) => ({
     name: u.nomAffiche,
@@ -138,8 +162,12 @@ export default async function DashboardPage() {
       <div className={styles.dashboardGrid}>
         {/* Central Widgets Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* 1.5 alerts widget */}
+          <AlertsCard alerts={alerts.slice(0, 5)} />
+
           {/* 2. Actions prioritaires widget */}
           <div className={styles.widget}>
+
             <div className={styles.widgetTitle} style={{ justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <AlertCircle size={18} color="var(--danger)" /> Actions prioritaires
@@ -170,13 +198,15 @@ export default async function DashboardPage() {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${d.priorite === 'CRITIQUE' ? 'badge-urgent' : d.priorite === 'HAUTE' ? 'badge-high' : 'badge-normal'}`}>
-                          {getPriorityLabel(d.priorite)}
+                        <span className={`badge ${d.computedPriority === 'CRITIQUE' ? 'badge-urgent' : d.computedPriority === 'HAUTE' ? 'badge-high' : 'badge-normal'}`}>
+                          {getPriorityLabel(d.computedPriority)}
                         </span>
+                        {isOverdue(d) && <span className="badge badge-danger" style={{ marginLeft: 6, fontSize: 10 }}>En Retard</span>}
                       </td>
                       <td>
                         <span className="badge badge-neutral" style={{ opacity: 0.85 }}>{getStatusLabel(d.statut)}</span>
                       </td>
+
                       <td>
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13 }}>{d.responsableCS?.nomAffiche || '-'}</span>
                       </td>

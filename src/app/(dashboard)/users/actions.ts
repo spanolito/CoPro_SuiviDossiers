@@ -103,13 +103,51 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
       }
     })
 
-    // Notify admin
+    // Notify admin in system
     await notifyAdmins(
       `Modification Utilisateur`,
       `L'utilisateur ${payload.userId} a été modifié par ${admin.id}.`,
       'LOG_SYSTEME' as any
     )
+
+    // Trigger Email Notification
+    const { sendEmail } = await import('@/lib/services/email')
+    
+    const roleChanged = user.role !== resolvedRole
+    const statusChanged = user.status !== resolvedStatus
+
+    if (roleChanged || statusChanged) {
+      let changeDesc = ''
+      if (roleChanged) changeDesc += `- Rôle : de ${user.role} à ${resolvedRole}\n`
+      if (statusChanged) changeDesc += `- Statut : de ${user.status} à ${resolvedStatus}\n`
+
+      // 1. Notify the user concerned
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Mise à jour de votre compte - CoPro Suivi',
+          body: `Bonjour ${user.nomAffiche},\n\nVotre compte a été mis à jour par un administrateur.\n\nModifications :\n${changeDesc}\nDate: ${new Date().toLocaleString('fr-FR')}`
+        })
+      }
+
+      // 2. Notify Admins
+      const adminsList = await prisma.utilisateur.findMany({
+        where: { role: 'PRESIDENT_CS', status: 'ACTIVE' }
+      })
+
+      for (const singleAdmin of adminsList) {
+        if (singleAdmin.id !== payload.userId) { // Don't notify the user about their own role change if they are admin
+          await sendEmail({
+            to: singleAdmin.email,
+            subject: 'Notification Admin : Modification utilisateur',
+            body: `L'utilisateur ${user.nomAffiche} (${user.email || 'Pas d\'email'}) a été modifié par ${admin.nomAffiche}.\n\nModifications :\n${changeDesc}`
+          })
+        }
+      }
+    }
+
   } catch (error) {
+
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return { error: 'Cet email est déjà utilisé.' }
     }
