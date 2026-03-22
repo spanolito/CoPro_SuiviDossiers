@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './import.module.css'
 import { createImportsBulk } from './actions'
-import { Trash2, Wand2, Check } from 'lucide-react'
+import { Trash2, Wand2, Check, ArrowRight, ArrowLeft } from 'lucide-react'
 
 export default function ImportForm() {
+  const [step, setStep] = useState(1)
   const [text, setText] = useState('')
   const [proposals, setProposals] = useState<any[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -46,6 +47,7 @@ export default function ImportForm() {
     })
 
     setProposals(newProposals)
+    setStep(2) // Move to step 2 after analysis
   }
 
   const updateProposal = (id: string, field: string, value: string) => {
@@ -53,7 +55,11 @@ export default function ImportForm() {
   }
 
   const removeProposal = (id: string) => {
-    setProposals(proposals.filter(p => p.id !== id))
+    const updated = proposals.filter(p => p.id !== id)
+    setProposals(updated)
+    if (updated.length === 0) {
+      setStep(1) // Return if no proposals left
+    }
   }
 
   const handleSubmit = async () => {
@@ -66,51 +72,80 @@ export default function ImportForm() {
 
   return (
     <div className={styles.importContainer}>
-      <div className={styles.parseCard}>
-        <h3 style={{ marginBottom: 16 }}>Texte Source (Compte rendu, email...)</h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-          Collez votre texte brut ci-dessous. Le système séparera les dossiers par les sauts de ligne doubles.
-        </p>
-        <textarea
-          className="form-control"
-          rows={8}
-          placeholder={"Exemple:\nFuite d'eau au sous-sol, très urgent.\n\nL'ascenseur est en panne, en attente du réparateur."}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          style={{ width: '100%', marginBottom: 16, fontFamily: 'monospace' }}
-        />
-        <button className="btn btn-primary" onClick={handleAnalyze} disabled={text.length < 10}>
-          <Wand2 size={16} /> Analyser le texte
-        </button>
+      {/* Visual Stepper */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '32px', maxWidth: '400px', width: '100%' }}>
+        {[1, 2, 3].map((s) => (
+          <div key={s} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ 
+              height: '4px', 
+              background: step >= s ? 'var(--primary)' : 'var(--border-color)', 
+              borderRadius: '2px',
+              transition: 'background 0.3s'
+            }} />
+            <span style={{ 
+              fontSize: '12px', 
+              fontWeight: 600, 
+              color: step >= s ? 'var(--text-primary)' : 'var(--text-secondary)' 
+            }}>
+              Étape {s}
+            </span>
+          </div>
+        ))}
       </div>
 
-      {proposals.length > 0 && (
-        <div className={styles.parseCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h3>{proposals.length} Dossier(s) Détecté(s)</h3>
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? 'Création en cours...' : <><Check size={16} /> Tout valider et Créer</>}
+      {step === 1 && (
+        <div className={styles.parseCard} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>1. Saisie du texte source</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Collez votre texte brut ci-dessous. Le système séparera les dossiers par les sauts de ligne doubles (\n\n).
+            </p>
+          </div>
+          
+          <textarea
+            className="form-control"
+            rows={10}
+            placeholder={"Exemple:\nFuite d'eau au sous-sol, très urgent.\n\nL'ascenseur est en panne, en attente du réparateur."}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            style={{ width: '100%', fontFamily: 'monospace', fontSize: '14px', minHeight: '200px' }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button className="btn btn-primary" onClick={handleAnalyze} disabled={text.length < 10} style={{ padding: '10px 20px' }}>
+              <Wand2 size={16} /> Analyser le texte
             </button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && proposals.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>2. Révision & Correction</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Vérifiez et ajustez les dossiers détectés par le système avant de continuer.
+            </p>
           </div>
 
           <div>
             {proposals.map((p, index) => (
-              <div key={p.id} className={styles.proposalCard}>
-                <button className={styles.removeBtn} onClick={() => removeProposal(p.id)} title="Retirer">
-                  <Trash2 size={16} />
+              <div key={p.id} className={styles.proposalCard} style={{ background: 'var(--panel-bg)', padding: '24px' }}>
+                <button className={styles.removeBtn} onClick={() => removeProposal(p.id)} title="Retirer" style={{ top: '24px', right: '24px' }}>
+                  <Trash2 size={18} />
                 </button>
-                <div className={styles.proposalHeader}>
-                  <strong>Dossier #{index + 1}</strong>
+                <div className={styles.proposalHeader} style={{ marginBottom: '16px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-secondary)' }}>DOSSIER #{index + 1}</span>
                 </div>
 
                 <div className={styles.proposalGrid}>
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label>Titre</label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Titre</label>
                     <input type="text" className="form-control" value={p.titre} onChange={e => updateProposal(p.id, 'titre', e.target.value)} />
                   </div>
 
                   <div className="form-group">
-                    <label>Type de dossier</label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Type de dossier</label>
                     <select className="form-control" value={p.typeDossier} onChange={e => updateProposal(p.id, 'typeDossier', e.target.value)}>
                       <option value="SINISTRE">Sinistre</option>
                       <option value="TECHNIQUE">Technique</option>
@@ -126,7 +161,7 @@ export default function ImportForm() {
                   </div>
 
                   <div className="form-group">
-                    <label>Statut estimé</label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Statut estimé</label>
                     <select className="form-control" value={p.statut} onChange={e => updateProposal(p.id, 'statut', e.target.value)}>
                       <option value="ENREGISTRE">Enregistré</option>
                       <option value="AFFECTE">Affecté</option>
@@ -137,23 +172,65 @@ export default function ImportForm() {
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label>Priorité estimée</label>
-                    <select className="form-control" value={p.priorite} onChange={e => updateProposal(p.id, 'priorite', e.target.value)}>
-                      <option value="BASSE">Basse</option>
-                      <option value="MOYENNE">Moyenne</option>
-                      <option value="HAUTE">Haute</option>
-                      <option value="CRITIQUE">Critique</option>
-                    </select>
-                  </div>
-
                   <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label>Description</label>
+                    <label style={{ fontSize: '12px', fontWeight: 600 }}>Description</label>
                     <textarea className="form-control" rows={3} value={p.description} onChange={e => updateProposal(p.id, 'description', e.target.value)} />
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button className="btn btn-outline" onClick={() => setStep(1)}>
+              <ArrowLeft size={16} /> Retour
+            </button>
+            <button className="btn btn-primary" onClick={() => setStep(3)}>
+              Suivant <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && proposals.length > 0 && (
+        <div className={styles.parseCard} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>3. Confirmation</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Résumé des dossiers qui seront créés dans l'application. Verifiez une dernière fois.
+            </p>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>Titre</th>
+                  <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>Type</th>
+                  <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                {proposals.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, fontSize: '14px' }}>{p.titre}</td>
+                    <td style={{ padding: '12px', fontSize: '13px', color: 'var(--text-secondary)' }}>{p.typeDossier}</td>
+                    <td style={{ padding: '12px' }}>
+                      <span className={`badge badge-info`} style={{ fontSize: '11px' }}>{p.statut}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+            <button className="btn btn-outline" onClick={() => setStep(2)}>
+              <ArrowLeft size={16} /> Retour
+            </button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={isSubmitting} style={{ padding: '10px 24px' }}>
+              {isSubmitting ? 'Création...' : <><Check size={16} /> Créer les {proposals.length} dossiers</>}
+            </button>
           </div>
         </div>
       )}

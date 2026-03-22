@@ -20,19 +20,20 @@
 
 .metricCard {
   background: var(--panel-bg);
-  padding: 20px;
+  padding: 24px 20px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
   text-decoration: none;
+  border-top: 4px solid transparent; /* To allow color coding top border */
 }
 
 .metricCard:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
 }
 
@@ -68,44 +69,42 @@
   gap: 10px;
 }
 
-.todoList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Table for priority actions */
+.widgetTable {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.todoItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px;
-  background: #fdfcfb;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  transition: background 0.2s;
-  text-decoration: none;
-}
-
-.todoItem:hover {
-  background: #F8F5F2;
-}
-
-.todoMain {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.todoTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.todoSub {
+.widgetTable th {
+  text-align: left;
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-secondary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
 }
+
+.widgetTable td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.widgetTable tr {
+  transition: background-color 0.2s;
+}
+
+.widgetTable tr:hover {
+  background-color: #F8F9FA;
+}
+
+.widgetTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Timeline tweaks */
 
 .assigneeList {
   display: flex;

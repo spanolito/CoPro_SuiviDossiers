@@ -1,7 +1,8 @@
 import prisma from '@/lib/prisma'
 import styles from './dossiers.module.css'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Plus, ArrowRight } from 'lucide-react'
+import DossierFilters from '@/components/dossiers/DossierFilters'
 
 export default async function DossiersListPage({
   searchParams,
@@ -14,8 +15,8 @@ export default async function DossiersListPage({
   const whereClause: any = {}
   if (q) {
     whereClause.OR = [
-      { titre: { contains: q } },
-      { reference: { contains: q } },
+      { titre: { contains: q, mode: 'insensitive' } },
+      { reference: { contains: q, mode: 'insensitive' } },
     ]
   }
   if (status) whereClause.statut = status
@@ -35,6 +36,11 @@ export default async function DossiersListPage({
     orderBy: { updatedAt: 'desc' }
   })
 
+  const getPriorityLabel = (p: string) => {
+    const labels: Record<string, string> = { CRITIQUE: 'Critique', HAUTE: 'Haute', MOYENNE: 'Moyenne', BASSE: 'Basse' }
+    return labels[p] || p
+  }
+
   const getPriorityBadgeClass = (p: string) => {
     switch(p) {
       case 'CRITIQUE': return 'badge-urgent'
@@ -45,15 +51,23 @@ export default async function DossiersListPage({
   }
 
   const getStatusLabel = (statut: string) => {
+    const labels: Record<string, string> = {
+      ENREGISTRE: 'Enregistré', AFFECTE: 'Affecté', EN_COURS: 'En Cours',
+      A_VALIDER: 'À Valider', CLOTURE: 'Clôturé', BLOQUE: 'Bloqué', ARCHIVE: 'Archivé'
+    }
+    return labels[statut] || statut
+  }
+
+  const getStatusBadgeClass = (statut: string) => {
     switch(statut) {
-      case 'ENREGISTRE': return 'Enregistré'
-      case 'AFFECTE': return 'Affecté'
-      case 'EN_COURS': return 'En Cours'
-      case 'A_VALIDER': return 'À Valider'
-      case 'CLOTURE': return 'Clôturé'
-      case 'BLOQUE': return 'Bloqué'
-      case 'ARCHIVE': return 'Archivé'
-      default: return statut
+      case 'ENREGISTRE': return 'badge-neutral'
+      case 'AFFECTE': return 'badge-info'
+      case 'EN_COURS': return 'badge-primary'
+      case 'A_VALIDER': return 'badge-warning'
+      case 'CLOTURE': return 'badge-success'
+      case 'BLOQUE': return 'badge-bloque'
+      case 'ARCHIVE': return 'badge-neutral'
+      default: return 'badge-neutral'
     }
   }
 
@@ -70,52 +84,21 @@ export default async function DossiersListPage({
     <div>
       <div className={styles.pageHeader}>
         <div>
-          <h2>Répertoire des dossiers</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Gérez et suivez tous les dossiers de la copropriété</p>
+          <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>Répertoire des dossiers</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: '4px' }}>Gérez et suivez todos los dossiers de la copropriété</p>
         </div>
-        <Link href="/dossiers/new" className="btn btn-primary">
+        <Link href="/dossiers/new" className="btn btn-primary" style={{ padding: '10px 18px', boxShadow: 'var(--shadow-sm)' }}>
           <Plus size={18} />
           Nouveau Dossier
         </Link>
       </div>
 
-      <form className={styles.filtersForm} method="GET">
-        <div className={styles.filterGroup}>
-          <label htmlFor="q">Recherche</label>
-          <input type="text" id="q" name="q" className="form-control" defaultValue={q} placeholder="Ref ou Titre..." />
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="status">Statut</label>
-          <select id="status" name="status" className="form-control" defaultValue={status}>
-            <option value="">Tous les statuts</option>
-            <option value="ENREGISTRE">Enregistré</option>
-            <option value="AFFECTE">Affecté</option>
-            <option value="EN_COURS">En Cours</option>
-            <option value="A_VALIDER">À Valider</option>
-            <option value="CLOTURE">Clôturé</option>
-            <option value="BLOQUE">Bloqué</option>
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="priority">Priorité</label>
-          <select id="priority" name="priority" className="form-control" defaultValue={priority}>
-            <option value="">Toutes les priorités</option>
-            <option value="CRITIQUE">Critique</option>
-            <option value="HAUTE">Haute</option>
-            <option value="MOYENNE">Moyenne</option>
-            <option value="BASSE">Basse</option>
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label htmlFor="archived_status">Affichage</label>
-          <select id="archived_status" name="archived_status" className="form-control" defaultValue={activeFilter}>
-            <option value="active">Actifs uniquement</option>
-            <option value="archived">Archivés uniquement</option>
-            <option value="all">Tous</option>
-          </select>
-        </div>
-        <button type="submit" className="btn btn-outline" style={{ height: '40px' }}>Filtrer</button>
-      </form>
+      <DossierFilters 
+        currentQ={q || ''} 
+        currentStatus={status || ''} 
+        currentPriority={priority || ''} 
+        currentArchived={activeFilter} 
+      />
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
@@ -127,43 +110,50 @@ export default async function DossiersListPage({
               <th>Statut</th>
               <th>Priorité</th>
               <th>Responsable CS</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {dossiers.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-secondary)' }}>
-                  Aucun dossier trouvé.
+                <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-secondary)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: '16px', fontWeight: 600 }}>Aucun dossier trouvé</div>
+                    <p style={{ fontSize: '14px' }}>Essayez d'ajuster vos filtres de recherche.</p>
+                  </div>
                 </td>
               </tr>
             ) : dossiers.map((d: any) => (
-              <tr key={d.id}>
-                <td style={{ fontWeight: 600 }}>{d.reference}</td>
+              <tr key={d.id} style={{ cursor: 'pointer' }}>
+                <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.reference}</td>
                 <td>
-                  <div style={{ fontWeight: 500 }}>{d.titre}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || ''}
-                  </div>
+                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2, textDecoration: 'none' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                      {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || 'Non spécifié'}
+                    </span>
+                  </Link>
                 </td>
-                <td>{getTypeDossierLabel(d.typeDossier)}</td>
+                <td><span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{getTypeDossierLabel(d.typeDossier)}</span></td>
                 <td>
-                  <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                    {getStatusLabel(d.statut)}
-                  </span>
-                  {d.archived && <span className="badge" style={{ background: 'var(--warning)', color: 'black', marginLeft: 4 }}>Archivé</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span className={`badge ${getStatusBadgeClass(d.statut)}`}>
+                      {getStatusLabel(d.statut)}
+                    </span>
+                    {d.archived && <span className="badge badge-neutral" style={{ opacity: 0.8 }}>Archivé</span>}
+                  </div>
                 </td>
                 <td>
                   <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
-                    {d.priorite}
+                    {getPriorityLabel(d.priorite)}
                   </span>
                 </td>
                 <td>
-                  <div style={{ fontSize: 13 }}>{d.responsableCS?.nomAffiche || '-'}</div>
+                  <div style={{ fontSize: 13, fontWeight: 500 }}>{d.responsableCS?.nomAffiche || '-'}</div>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} className={`btn btn-outline ${styles.actionBtn}`}>
-                    Voir
+                <td style={{ textAlign: 'right' }}>
+                  <Link href={`/dossiers/${d.id}`} className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    Voir <ArrowRight size={14} />
                   </Link>
                 </td>
               </tr>

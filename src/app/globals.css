@@ -14,6 +14,28 @@
   --warning: #FCC419;
   --info: #339AF0;
 
+  /* Soft Backgrounds for states (Sober look) */
+  --primary-bg: #FFF9E6;
+  --primary-text: #925C08;
+
+  --success-bg: #E6FCF5;
+  --success-text: #099268;
+
+  --danger-bg: #FFF5F5;
+  --danger-text: #FA5252;
+
+  --warning-bg: #FFF9DB;
+  --warning-text: #E8590C;
+
+  --info-bg: #E7F5FF;
+  --info-text: #1C7ED6;
+
+  --neutral-bg: #F1F3F5;
+  --neutral-text: #495057;
+
+  --bloque-bg: #FFF0F6;
+  --bloque-text: #D63384;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;
@@ -144,13 +166,22 @@ a {
   border-radius: 99px;
   font-size: 12px;
   font-weight: 600;
-  text-transform: capitalize;
+  text-transform: none; /* Removed capitalize as it might break some abbreviations */
 }
 
-.badge-urgent { background: var(--badge-urgent-bg); color: var(--badge-urgent-text); }
-.badge-high { background: var(--badge-high-bg); color: var(--badge-high-text); }
-.badge-normal { background: var(--badge-normal-bg); color: var(--badge-normal-text); }
-.badge-low { background: var(--badge-low-bg); color: var(--badge-low-text); }
+/* Priority & State Badges */
+.badge-urgent { background-color: var(--danger-bg); color: var(--danger-text); }
+.badge-high { background-color: var(--warning-bg); color: var(--warning-text); }
+.badge-normal { background-color: var(--info-bg); color: var(--info-text); }
+.badge-low { background-color: var(--neutral-bg); color: var(--neutral-text); }
+
+.badge-success { background-color: var(--success-bg); color: var(--success-text); }
+.badge-warning { background-color: var(--warning-bg); color: var(--warning-text); }
+.badge-danger { background-color: var(--danger-bg); color: var(--danger-text); }
+.badge-info { background-color: var(--info-bg); color: var(--info-text); }
+.badge-bloque { background-color: var(--bloque-bg); color: var(--bloque-text); }
+.badge-primary { background-color: var(--primary-bg); color: var(--primary-text); }
+.badge-neutral { background-color: var(--neutral-bg); color: var(--neutral-text); }
 
 /* Layout adjustments */
 .header {
