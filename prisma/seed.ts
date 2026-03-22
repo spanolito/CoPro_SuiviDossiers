@@ -4,211 +4,509 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Roles
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
-    update: {},
-    create: { name: 'Admin' },
-  })
-  const conseilRole = await prisma.role.upsert({
-    where: { name: 'Conseil syndical' },
-    update: {},
-    create: { name: 'Conseil syndical' },
-  })
-  const roRole = await prisma.role.upsert({
-    where: { name: 'Read-only' },
-    update: {},
-    create: { name: 'Read-only' },
-  })
+  console.log('🏗️  Seed – Copropriété L\'Ambassadeur')
 
-  // Users
-  const hashedPassword = await bcrypt.hash('password123', 10)
-  
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@copro.com' },
-    update: { status: 'ACTIVE' },
+  const hash = await bcrypt.hash('password123', 10)
+
+  // ─── 1. Copropriété ───
+  const copro = await prisma.copropriete.upsert({
+    where: { id: 'copro-ambassadeur' },
+    update: {},
     create: {
-      email: 'admin@copro.com',
-      name: 'Syndic Admin',
-      password: hashedPassword,
-      roleId: adminRole.id,
-      status: 'ACTIVE',
-    },
-  })
-  
-  const conseilUser = await prisma.user.upsert({
-    where: { email: 'conseil@copro.com' },
-    update: { status: 'ACTIVE' },
-    create: {
-      email: 'conseil@copro.com',
-      name: 'Membre du Conseil',
-      password: hashedPassword,
-      roleId: conseilRole.id,
-      status: 'ACTIVE',
+      id: 'copro-ambassadeur',
+      nom: "Résidence L'Ambassadeur",
+      adresse: '10 avenue de la République',
+      ville: 'Échirolles',
+      codePostal: '38130',
     },
   })
 
-  // Categories
-  const catInfiltration = await prisma.category.upsert({ where: { name: 'Infiltration / Dégâts' }, update: {}, create: { name: 'Infiltration / Dégâts' } })
-  const catChauffage = await prisma.category.upsert({ where: { name: 'Chauffage / Plomberie' }, update: {}, create: { name: 'Chauffage / Plomberie' } })
-  const catElectricite = await prisma.category.upsert({ where: { name: 'Électricité' }, update: {}, create: { name: 'Électricité' } })
-  const catToiture = await prisma.category.upsert({ where: { name: 'Toiture / Fissures' }, update: {}, create: { name: 'Toiture / Fissures' } })
-  const catLitige = await prisma.category.upsert({ where: { name: 'Litige / Assurance' }, update: {}, create: { name: 'Litige / Assurance' } })
-  const catAG = await prisma.category.upsert({ where: { name: 'Décision AG' }, update: {}, create: { name: 'Décision AG' } })
-  const catFacade = await prisma.category.upsert({ where: { name: 'Façade' }, update: {}, create: { name: 'Façade' } })
-
-  // Prestataires
-  const prVolfeu = await prisma.prestataire.create({ data: { nom: 'VOLFEU', type: 'technique' } })
-  const prGlobal = await prisma.prestataire.create({ data: { nom: 'GLOBAL CONSTRUCTION CLAIMS', type: 'technique' } })
-  const prGex = await prisma.prestataire.create({ data: { nom: 'GEX MULTISERVICES', type: 'technique' } })
-  const prPichon = await prisma.prestataire.create({ data: { nom: 'ESPACES VERTS PICHON', type: 'espaces verts' } })
-  const prWalterre = await prisma.prestataire.create({ data: { nom: 'WALTERRE', type: 'chauffage' } })
-  const prEngie = await prisma.prestataire.create({ data: { nom: 'ENGIE', type: 'chauffage' } })
-  const prChazelle = await prisma.prestataire.create({ data: { nom: 'Cabinet CHAZELLE / Me GEOFFRAY', type: 'juridique' } })
-  const prPersea = await prisma.prestataire.create({ data: { nom: 'Cabinet PERSEA', type: 'juridique' } })
-  const prPichet = await prisma.prestataire.create({ data: { nom: 'PICHET IMMOBILIER SERVICES', type: 'syndic' } })
-
-
-  // Dossiers
-  // 1. Infiltration garage
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-001' },
+  // ─── 2. Bâtiment ───
+  const bat = await prisma.batiment.upsert({
+    where: { id: 'bat-ambassadeur' },
     update: {},
     create: {
-      reference: 'DOS-2026-001',
-      title: 'Infiltration mur nord du garage',
-      description: 'Présence d\'eau signalée par le copropriétaire du lot 42 lors de fortes pluies.',
-      statut: 'en_cours',
-      priorite: 'haute',
-      building: 'Bâtiment A',
-      lotZone: 'Sous-sol / Garage',
-      typeDossier: 'Travaux',
-      categoryId: catInfiltration.id,
-      responsableCSId: adminUser.id,
-      prestataireId: prPichet.id,
-      etapes: {
-        create: [
-          { title: 'Signalement reçu', statut: 'terminée', comment: 'Mail du copropriétaire.', date: new Date('2026-03-01T10:00:00Z') },
-          { title: 'Visite effectuée', statut: 'terminée', comment: 'Visite avec le plombier.', date: new Date('2026-03-05T14:00:00Z') }
-        ]
-      }
-    }
+      id: 'bat-ambassadeur',
+      coproprieteId: copro.id,
+      nom: "L'Ambassadeur",
+      code: 'AMB',
+    },
   })
 
-  // 2. Fuite toiture
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-002' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-002',
-      title: 'Fuite vérifiée sur toiture principale',
-      description: 'L\'expert est passé, la réparation nécessite un devis du couvreur pour l\'AG.',
-      statut: 'en_attente_devis',
-      priorite: 'urgente',
-      building: 'Bâtiment Principal',
-      lotZone: 'Toit terrasse',
-      typeDossier: 'Travaux',
-      categoryId: catToiture.id,
-      responsableCSId: adminUser.id,
-      prestataireId: prGex.id,
-    }
-  })
+  // ─── 3. Niveaux ───
+  const niveauxData = [
+    { id: 'niv-ss', code: 'SS', nom: 'Sous-sol', ordre: 0 },
+    { id: 'niv-rdc', code: 'RDC', nom: 'Rez-de-chaussée', ordre: 1 },
+    { id: 'niv-1', code: 'N1', nom: '1er étage', ordre: 2 },
+    { id: 'niv-2', code: 'N2', nom: '2e étage', ordre: 3 },
+  ]
+  for (const n of niveauxData) {
+    await prisma.niveau.upsert({
+      where: { id: n.id },
+      update: {},
+      create: { ...n, coproprieteId: copro.id, batimentId: bat.id },
+    })
+  }
 
-  // 3. Litige assurance
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-003' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-003',
-      title: 'Litige assurance dégât des eaux appt 12',
-      description: 'L\'assurance refuse la prise en charge de la recherche de fuite.',
-      statut: 'bloque',
-      priorite: 'moyenne',
-      building: 'Bâtiment B',
-      lotZone: 'Appartement 12',
-      typeDossier: 'Juridique',
-      categoryId: catLitige.id,
-      responsableCSId: conseilUser.id,
-      prestataireId: prChazelle.id,
-    }
-  })
+  // ─── 4. Lots (12 appartements) ───
+  const lotsData = [
+    { numero: '01', niveauId: 'niv-rdc', libelle: 'Appartement 01 – RDC' },
+    { numero: '02', niveauId: 'niv-rdc', libelle: 'Appartement 02 – RDC' },
+    { numero: '03', niveauId: 'niv-rdc', libelle: 'Appartement 03 – RDC' },
+    { numero: '04', niveauId: 'niv-rdc', libelle: 'Appartement 04 – RDC' },
+    { numero: '11', niveauId: 'niv-1', libelle: 'Appartement 11 – 1er étage' },
+    { numero: '12', niveauId: 'niv-1', libelle: 'Appartement 12 – 1er étage' },
+    { numero: '13', niveauId: 'niv-1', libelle: 'Appartement 13 – 1er étage' },
+    { numero: '14', niveauId: 'niv-1', libelle: 'Appartement 14 – 1er étage' },
+    { numero: '21', niveauId: 'niv-2', libelle: 'Appartement 21 – 2e étage' },
+    { numero: '22', niveauId: 'niv-2', libelle: 'Appartement 22 – 2e étage' },
+    { numero: '23', niveauId: 'niv-2', libelle: 'Appartement 23 – 2e étage' },
+    { numero: '24', niveauId: 'niv-2', libelle: 'Appartement 24 – 2e étage' },
+  ]
+  const lots: Record<string, string> = {}
+  for (const l of lotsData) {
+    const lot = await prisma.lot.upsert({
+      where: { coproprieteId_numero: { coproprieteId: copro.id, numero: l.numero } },
+      update: {},
+      create: {
+        coproprieteId: copro.id,
+        batimentId: bat.id,
+        niveauId: l.niveauId,
+        numero: l.numero,
+        type: 'APPARTEMENT',
+        libelle: l.libelle,
+      },
+    })
+    lots[l.numero] = lot.id
+  }
 
-  // 4. Façade devis
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-004' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-004',
-      title: 'Devis réfection façade',
-      description: 'Besoin de 3 devis pour la prochaine AG concernant le ravalement côté rue.',
-      statut: 'nouveau',
-      priorite: 'basse',
-      typeDossier: 'Travaux',
-      categoryId: catFacade.id,
-      responsableCSId: adminUser.id,
-      prestataireId: null,
-    }
-  })
+  // ─── 5. Zones Communes ───
+  const zonesData: Array<{ id: string; type: string; nom: string; niveauId?: string }> = [
+    { id: 'zc-garages', type: 'RAMPE_ACCES_GARAGES', nom: 'Garages', niveauId: 'niv-ss' },
+    { id: 'zc-caves', type: 'AUTRE', nom: 'Caves', niveauId: 'niv-ss' },
+    { id: 'zc-poubelles', type: 'LOCAL_POUBELLES', nom: 'Local poubelles' },
+    { id: 'zc-chaufferie', type: 'CHAUFFERIE', nom: 'Chaufferie', niveauId: 'niv-ss' },
+    { id: 'zc-vmc', type: 'VMC', nom: 'VMC' },
+    { id: 'zc-ascenseur', type: 'ASCENSEUR', nom: 'Ascenseur' },
+    { id: 'zc-escalier', type: 'CAGE_ESCALIER', nom: 'Cage d\'escalier' },
+    { id: 'zc-facades', type: 'FACADE_NORD', nom: 'Façades' },
+    { id: 'zc-toiture', type: 'TOITURE', nom: 'Toiture' },
+    { id: 'zc-terrasse', type: 'TERRASSE', nom: 'Terrasse' },
+    { id: 'zc-jardin', type: 'JARDIN', nom: 'Jardin' },
+    { id: 'zc-rampe', type: 'RAMPE_ACCES_GARAGES', nom: 'Rampe d\'accès garages', niveauId: 'niv-ss' },
+    { id: 'zc-reseaux', type: 'RESEAUX_COMMUNS', nom: 'Réseaux communs' },
+  ]
+  for (const z of zonesData) {
+    await prisma.zoneCommune.upsert({
+      where: { id: z.id },
+      update: {},
+      create: {
+        id: z.id,
+        coproprieteId: copro.id,
+        batimentId: bat.id,
+        niveauId: z.niveauId || null,
+        type: z.type as any,
+        nom: z.nom,
+      },
+    })
+  }
 
-  // 5. Panne éclairage
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-005' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-005',
-      title: 'Panne éclairage couloir 2ème étage',
-      description: 'Tout le couloir est dans le noir.',
-      statut: 'resolu',
-      priorite: 'haute',
-      building: 'Bâtiment A',
-      lotZone: '2ème Étage',
-      typeDossier: 'Autre',
-      categoryId: catElectricite.id,
-      etapes: {
-        create: [
-          { title: 'Intervention électricien', statut: 'terminée', comment: 'Ampoules et fusible changés.' }
-        ]
-      }
-    }
-  })
+  // ─── 6. Utilisateurs ───
+  const usersData = [
+    { id: 'usr-oscar', email: 'oscar@copro-ambassadeur.fr', nomAffiche: 'Oscar ANDUJAR', prenom: 'Oscar', nom: 'ANDUJAR', role: 'PRESIDENT_CS' as const, status: 'ACTIVE' as const },
+    { id: 'usr-catia', email: 'catia@copro-ambassadeur.fr', nomAffiche: 'Catia BENI', prenom: 'Catia', nom: 'BENI', role: 'MEMBRE_CS' as const, status: 'ACTIVE' as const },
+    { id: 'usr-laury', email: 'laury@copro-ambassadeur.fr', nomAffiche: 'Laury CASTAGNETTI', prenom: 'Laury', nom: 'CASTAGNETTI', role: 'MEMBRE_CS' as const, status: 'ACTIVE' as const },
+    { id: 'usr-leonella', email: 'leonella@copro-ambassadeur.fr', nomAffiche: 'Leonella CASTELLANO', prenom: 'Leonella', nom: 'CASTELLANO', role: 'MEMBRE_CS' as const, status: 'ACTIVE' as const },
+    { id: 'usr-lionel', email: 'lionel@copro-ambassadeur.fr', nomAffiche: 'Lionel CONFORTO', prenom: 'Lionel', nom: 'CONFORTO', role: 'MEMBRE_CS' as const, status: 'ACTIVE' as const },
+    { id: 'usr-guillaume-e', email: 'guillaume.e@copro-ambassadeur.fr', nomAffiche: 'Guillaume ESTOUP', prenom: 'Guillaume', nom: 'ESTOUP', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-marika', email: 'marika@copro-ambassadeur.fr', nomAffiche: 'Marika FLYGAR', prenom: 'Marika', nom: 'FLYGAR', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-guillaume-g', email: 'guillaume.g@copro-ambassadeur.fr', nomAffiche: 'Guillaume GOUTAUDIER', prenom: 'Guillaume', nom: 'GOUTAUDIER', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-christophe', email: 'christophe@copro-ambassadeur.fr', nomAffiche: 'Christophe HERICAULT', prenom: 'Christophe', nom: 'HERICAULT', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-aldric', email: 'aldric@copro-ambassadeur.fr', nomAffiche: 'Aldric MARTIN', prenom: 'Aldric', nom: 'MARTIN', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-jeanlouis', email: 'jeanlouis@copro-ambassadeur.fr', nomAffiche: 'Jean Louis PONCIN', prenom: 'Jean Louis', nom: 'PONCIN', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+    { id: 'usr-aline', email: 'aline@copro-ambassadeur.fr', nomAffiche: 'Aline USANASE', prenom: 'Aline', nom: 'USANASE', role: 'COPROPRIETAIRE_LECTURE' as const, status: 'ACTIVE' as const },
+  ]
+  for (const u of usersData) {
+    await prisma.utilisateur.upsert({
+      where: { id: u.id },
+      update: {},
+      create: {
+        id: u.id,
+        coproprieteId: copro.id,
+        email: u.email,
+        passwordHash: hash,
+        nomAffiche: u.nomAffiche,
+        prenom: u.prenom,
+        nom: u.nom,
+        role: u.role,
+        status: u.status,
+        isActive: true,
+      },
+    })
+  }
 
-  // 6. Décision AG
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-006' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-006',
-      title: 'Validation devis ascenseur par AG',
-      description: 'Mise aux normes décidée à la dernière AG. Attente signature contrat.',
-      statut: 'en_attente_syndic',
-      priorite: 'moyenne',
-      typeDossier: 'Syndic',
-      categoryId: catAG.id,
-    }
-  })
+  // ─── 7. Copropriétaires (linked to users) ───
+  const coproprietairesData = usersData.map(u => ({
+    id: `cp-${u.id.replace('usr-', '')}`,
+    prenom: u.prenom!,
+    nom: u.nom!,
+    email: u.email,
+    userId: u.id,
+  }))
+  for (const c of coproprietairesData) {
+    await prisma.coproprietaire.upsert({
+      where: { id: c.id },
+      update: {},
+      create: {
+        id: c.id,
+        coproprieteId: copro.id,
+        prenom: c.prenom,
+        nom: c.nom,
+        email: c.email,
+        userId: c.userId,
+        actif: true,
+      },
+    })
+  }
 
-  // 7. Panne chaudière chauffage
-  await prisma.dossier.upsert({
-    where: { reference: 'DOS-2026-007' },
-    update: {},
-    create: {
-      reference: 'DOS-2026-007',
-      title: 'Arrêt de la chaudière collective',
-      description: 'Code erreur E42 sur la chaudière principale. Plus d\'eau chaude.',
-      statut: 'urgent_intervention',
-      priorite: 'urgente',
-      typeDossier: 'Chauffage',
-      categoryId: catChauffage.id,
-      responsableCSId: adminUser.id,
-      prestataireId: prEngie.id,
-      typeInstallation: 'Chaudière Gaz',
-      contratMaintenance: 'P2',
-      lastMaintenance: new Date('2025-10-15T00:00:00Z'),
-      nextDeadline: new Date('2026-10-15T00:00:00Z')
-    }
-  })
+  // ─── 8. Intervenants ───
+  const intervenantsData = [
+    { id: 'int-pichet', nom: 'PICHET IMMOBILIER SERVICES', type: 'SYNDIC' as const, sousType: 'Syndic principal' },
+    { id: 'int-volfeu', nom: 'VOLFEU', type: 'PRESTATAIRE' as const, sousType: 'Sécurité / Caméras' },
+    { id: 'int-gcc', nom: 'GLOBAL CONSTRUCTION CLAIMS', type: 'PRESTATAIRE' as const, sousType: 'Travaux / Crépis' },
+    { id: 'int-gex', nom: 'GEX MULTISERVICES', type: 'PRESTATAIRE' as const, sousType: 'Travaux + Espaces verts' },
+    { id: 'int-pichon', nom: 'ESPACES VERTS PICHON', type: 'PRESTATAIRE' as const, sousType: 'Espaces verts' },
+    { id: 'int-walterre', nom: 'WALTERRE', type: 'EXPERT' as const, sousType: 'Audit chaufferie' },
+    { id: 'int-engie', nom: 'ENGIE', type: 'PRESTATAIRE' as const, sousType: 'Chauffage / Maintenance' },
+    { id: 'int-chazelle', nom: 'Cabinet CHAZELLE / Me GEOFFRAY', type: 'AVOCAT' as const, sousType: 'Dossier FONCIA' },
+    { id: 'int-persea', nom: 'Cabinet PERSEA', type: 'AVOCAT' as const, sousType: 'Contentieux' },
+  ]
+  for (const i of intervenantsData) {
+    await prisma.intervenant.upsert({
+      where: { id: i.id },
+      update: {},
+      create: {
+        id: i.id,
+        coproprieteId: copro.id,
+        nom: i.nom,
+        type: i.type,
+        sousType: i.sousType,
+        actif: true,
+      },
+    })
+  }
 
-  console.log('Seed completed successfully.')
+  // ─── 9. 12 Dossiers réels ───
+  const oscar = 'usr-oscar'
+  const catia = 'usr-catia'
+  const laury = 'usr-laury'
+  const leonella = 'usr-leonella'
+  const lionel = 'usr-lionel'
+
+  const dossiersData = [
+    {
+      id: 'dos-01', reference: 'DOS-2025-0001',
+      titre: 'Infiltration garage Mme Usanase',
+      description: 'Infiltration garage, sinistre déclaré, expert mandaté, devis envoyé, attente retour assurance copropriété.',
+      typeDossier: 'SINISTRE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      coproprietaireConcerneId: 'cp-aline',
+      zoneCommuneId: 'zc-garages',
+      typeLocalisation: 'SOUS_SOL_GARAGE' as const,
+    },
+    {
+      id: 'dos-02', reference: 'DOS-2025-0002',
+      titre: 'Infiltrations caves – recherche de fuite',
+      description: 'Recherches en cours, suspicion d\'origine appartement Poncin, origine non confirmée.',
+      typeDossier: 'SINISTRE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      zoneCommuneId: 'zc-caves',
+      typeLocalisation: 'SOUS_SOL_GARAGE' as const,
+    },
+    {
+      id: 'dos-03', reference: 'DOS-2025-0003',
+      titre: 'Porte de garage – dysfonctionnement système d\'ouverture',
+      description: 'Récepteur HS, courrier au syndic voisin resté sans réponse, sécurité accès garages compromise.',
+      typeDossier: 'TECHNIQUE' as const, statut: 'BLOQUE' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      zoneCommuneId: 'zc-rampe',
+      typeLocalisation: 'SOUS_SOL_GARAGE' as const,
+    },
+    {
+      id: 'dos-04', reference: 'DOS-2025-0004',
+      titre: 'Fuite chauffage au sol – retour 2e étage',
+      description: 'Devis validé, intervention à planifier avec coupure temporaire d\'eau.',
+      typeDossier: 'CHAUFFAGE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: catia, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      niveauId: 'niv-2',
+      typeLocalisation: 'APPARTEMENT_PRIVATIF' as const,
+      typeInstallation: 'Chauffage au sol – retour',
+    },
+    {
+      id: 'dos-05', reference: 'DOS-2025-0005',
+      titre: 'VMC – dysfonctionnement dans plusieurs appartements',
+      description: 'Intervention attendue, plusieurs appartements signalés.',
+      typeDossier: 'TECHNIQUE' as const, statut: 'AFFECTE' as const, priorite: 'MOYENNE' as const,
+      responsableCSId: laury, createurUserId: oscar,
+      zoneCommuneId: 'zc-vmc',
+      typeLocalisation: 'EQUIPEMENT_TECHNIQUE' as const,
+    },
+    {
+      id: 'dos-06', reference: 'DOS-2025-0006',
+      titre: 'Fuite – local à ordures',
+      description: 'Recherche origine fuite, passage de prestataire, attente retour.',
+      typeDossier: 'TECHNIQUE' as const, statut: 'EN_COURS' as const, priorite: 'MOYENNE' as const,
+      responsableCSId: leonella, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      zoneCommuneId: 'zc-poubelles',
+      typeLocalisation: 'PARTIE_COMMUNE' as const,
+    },
+    {
+      id: 'dos-07', reference: 'DOS-2025-0007',
+      titre: 'Caméras de surveillance',
+      description: 'Projet présenté en AG, problématique CNIL / voie de passage, décision de ne pas donner suite à ce stade.',
+      typeDossier: 'SECURITE' as const, statut: 'ARCHIVE' as const, priorite: 'BASSE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      prestatairePrincipalId: 'int-volfeu',
+      archived: true, archivedAt: new Date('2025-01-15'),
+    },
+    {
+      id: 'dos-08', reference: 'DOS-2025-0008',
+      titre: 'Éclairage de façade',
+      description: 'Problème initial résolu, étude capteur crépusculaire / devis demandé.',
+      typeDossier: 'TECHNIQUE' as const, statut: 'EN_COURS' as const, priorite: 'BASSE' as const,
+      responsableCSId: lionel, createurUserId: oscar,
+      zoneCommuneId: 'zc-facades',
+      typeLocalisation: 'EXTERIEUR' as const,
+    },
+    {
+      id: 'dos-09', reference: 'DOS-2025-0009',
+      titre: 'Chaufferie – dysfonctionnements eau chaude / pompe',
+      description: 'Plusieurs interventions, pompe identifiée, commande en cours, remplacement lié au contrat P3.',
+      typeDossier: 'CHAUFFAGE' as const, statut: 'EN_COURS' as const, priorite: 'CRITIQUE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      prestatairePrincipalId: 'int-engie',
+      responsableActionId: 'int-engie',
+      zoneCommuneId: 'zc-chaufferie',
+      typeLocalisation: 'EQUIPEMENT_TECHNIQUE' as const,
+      typeInstallation: 'Chaudière collective gaz',
+      contratMaintenance: 'Contrat P3 ENGIE',
+    },
+    {
+      id: 'dos-10', reference: 'DOS-2025-0010',
+      titre: 'Chaufferie – rapport Walterre / plan d\'action',
+      description: 'Chaudière surdimensionnée, besoin de plan d\'action chiffré et priorisé, optimisation demandée.',
+      typeDossier: 'CHAUFFAGE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      prestatairePrincipalId: 'int-walterre',
+      responsableActionId: 'int-walterre',
+      zoneCommuneId: 'zc-chaufferie',
+      typeLocalisation: 'EQUIPEMENT_TECHNIQUE' as const,
+    },
+    {
+      id: 'dos-11', reference: 'DOS-2025-0011',
+      titre: 'Comptes de copropriété 2024–2025',
+      description: 'Comptes non approuvés, questions sur compte d\'attente débiteur, factures non parvenues, travaux, calendrier légal de l\'AG d\'approbation.',
+      typeDossier: 'FINANCIER' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      responsableActionId: 'int-pichet',
+    },
+    {
+      id: 'dos-12', reference: 'DOS-2025-0012',
+      titre: 'Dossier FONCIA',
+      description: 'Récupération de pièces, honoraires amiables de 600 €, aucun projet d\'assignation à ce stade, dossier à suivre.',
+      typeDossier: 'JURIDIQUE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      prestatairePrincipalId: 'int-chazelle',
+      responsableActionId: 'int-chazelle',
+    },
+  ]
+
+  for (const d of dossiersData) {
+    await prisma.dossier.upsert({
+      where: { id: d.id },
+      update: {},
+      create: {
+        id: d.id,
+        coproprieteId: copro.id,
+        batimentId: bat.id,
+        reference: d.reference,
+        titre: d.titre,
+        description: d.description,
+        typeDossier: d.typeDossier,
+        statut: d.statut,
+        priorite: d.priorite,
+        responsableCSId: d.responsableCSId,
+        createurUserId: d.createurUserId,
+        syndicImpliqueId: d.syndicImpliqueId || null,
+        prestatairePrincipalId: d.prestatairePrincipalId || null,
+        responsableActionId: d.responsableActionId || null,
+        coproprietaireConcerneId: d.coproprietaireConcerneId || null,
+        niveauId: d.niveauId || null,
+        zoneCommuneId: d.zoneCommuneId || null,
+        typeLocalisation: d.typeLocalisation || null,
+        typeInstallation: d.typeInstallation || null,
+        contratMaintenance: d.contratMaintenance || null,
+        archived: d.archived || false,
+        archivedAt: d.archivedAt || null,
+      },
+    })
+  }
+
+  // ─── 10. Étapes & Activités par dossier ───
+  const etapesParDossier: Array<{
+    dossierId: string
+    etapes: Array<{ titre: string; typeEtape: string; statutEtape: string; description?: string }>
+  }> = [
+    {
+      dossierId: 'dos-01',
+      etapes: [
+        { titre: 'Signalement de l\'infiltration', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Sinistre déclaré auprès du syndic', typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE' },
+        { titre: 'Expert mandaté', typeEtape: 'VISITE', statutEtape: 'TERMINEE' },
+        { titre: 'Devis envoyé', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'TERMINEE' },
+        { titre: 'Attente retour assurance copropriété', typeEtape: 'REPONSE_RECUE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-02',
+      etapes: [
+        { titre: 'Constatation infiltrations dans les caves', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Recherche de fuite lancée', typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE' },
+        { titre: 'Suspicion origine appt Poncin', typeEtape: 'VISITE', statutEtape: 'EN_ATTENTE', description: 'Origine non confirmée' },
+      ],
+    },
+    {
+      dossierId: 'dos-03',
+      etapes: [
+        { titre: 'Signalement dysfonctionnement ouverture', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Courrier envoyé au syndic voisin', typeEtape: 'RELANCE', statutEtape: 'TERMINEE' },
+        { titre: 'Réponse voisin : aucune', typeEtape: 'REPONSE_RECUE', statutEtape: 'BLOQUEE', description: 'Sans réponse depuis 2 mois' },
+      ],
+    },
+    {
+      dossierId: 'dos-04',
+      etapes: [
+        { titre: 'Signalement fuite chauffage au sol', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Devis demandé', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'TERMINEE' },
+        { titre: 'Devis validé', typeEtape: 'DEVIS_VALIDE', statutEtape: 'TERMINEE' },
+        { titre: 'Intervention à planifier (coupure eau)', typeEtape: 'INTERVENTION_PLANIFIEE', statutEtape: 'A_FAIRE' },
+      ],
+    },
+    {
+      dossierId: 'dos-05',
+      etapes: [
+        { titre: 'Signalement VMC défaillante', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Affecté au prestataire', typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE' },
+      ],
+    },
+    {
+      dossierId: 'dos-06',
+      etapes: [
+        { titre: 'Signalement fuite local ordures', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Passage prestataire', typeEtape: 'VISITE', statutEtape: 'TERMINEE' },
+        { titre: 'Attente retour diagnostic', typeEtape: 'REPONSE_RECUE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-07',
+      etapes: [
+        { titre: 'Projet présenté en AG', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Problématique CNIL identifiée', typeEtape: 'DECISION', statutEtape: 'TERMINEE', description: 'Voie de passage → pas de suite' },
+        { titre: 'Dossier archivé', typeEtape: 'CLOTURE', statutEtape: 'TERMINEE' },
+      ],
+    },
+    {
+      dossierId: 'dos-08',
+      etapes: [
+        { titre: 'Signalement éclairage façade HS', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Problème initial résolu', typeEtape: 'INTERVENTION_REALISEE', statutEtape: 'TERMINEE' },
+        { titre: 'Étude capteur crépusculaire / devis', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-09',
+      etapes: [
+        { titre: 'Signalement pannes eau chaude', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Intervention ENGIE – diagnostic pompe', typeEtape: 'VISITE', statutEtape: 'TERMINEE' },
+        { titre: 'Pompe identifiée, commande pièce', typeEtape: 'DEVIS_VALIDE', statutEtape: 'TERMINEE' },
+        { titre: 'Remplacement pompe – contrat P3', typeEtape: 'INTERVENTION_PLANIFIEE', statutEtape: 'A_FAIRE' },
+      ],
+    },
+    {
+      dossierId: 'dos-10',
+      etapes: [
+        { titre: 'Audit chaufferie par Walterre', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Rapport reçu : chaudière surdimensionnée', typeEtape: 'REPONSE_RECUE', statutEtape: 'TERMINEE' },
+        { titre: 'Plan d\'action chiffré demandé à ENGIE', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-11',
+      etapes: [
+        { titre: 'Ouverture dossier comptes 2024-2025', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Questions envoyées au syndic', typeEtape: 'RELANCE', statutEtape: 'TERMINEE', description: 'Compte d\'attente débiteur, factures manquantes' },
+        { titre: 'Attente calendrier AG approbation', typeEtape: 'REPONSE_RECUE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-12',
+      etapes: [
+        { titre: 'Ouverture dossier FONCIA', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Récupération de pièces en cours', typeEtape: 'AUTRE', statutEtape: 'EN_ATTENTE' },
+        { titre: 'Honoraires amiables 600 € – à suivre', typeEtape: 'DECISION', statutEtape: 'EN_ATTENTE', description: 'Aucun projet d\'assignation à ce stade' },
+      ],
+    },
+  ]
+
+  for (const group of etapesParDossier) {
+    for (const e of group.etapes) {
+      await prisma.dossierEtape.create({
+        data: {
+          dossierId: group.dossierId,
+          titre: e.titre,
+          description: e.description || null,
+          typeEtape: e.typeEtape as any,
+          statutEtape: e.statutEtape as any,
+          auteurUserId: oscar,
+          dateRealisation: e.statutEtape === 'TERMINEE' ? new Date() : null,
+        },
+      })
+    }
+
+    // Activité de création pour chaque dossier
+    await prisma.dossierActivite.create({
+      data: {
+        dossierId: group.dossierId,
+        userId: oscar,
+        typeAction: 'DOSSIER_CREE',
+        resume: 'Dossier créé par le Président du CS',
+      },
+    })
+    await prisma.dossierActivite.create({
+      data: {
+        dossierId: group.dossierId,
+        userId: oscar,
+        typeAction: 'STATUT_CHANGE',
+        resume: 'Statut mis à jour',
+      },
+    })
+  }
+
+  console.log('✅ Seed terminé avec succès !')
+  console.log('   → 1 copropriété, 1 bâtiment, 4 niveaux')
+  console.log('   → 12 lots, 13 zones communes')
+  console.log('   → 12 utilisateurs (5 CS + 7 copropriétaires)')
+  console.log('   → 9 intervenants')
+  console.log('   → 12 dossiers avec étapes et historique')
+  console.log('')
+  console.log('🔑 Connexion admin : oscar@copro-ambassadeur.fr / password123')
 }
 
 main()

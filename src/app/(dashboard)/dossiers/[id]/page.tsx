@@ -16,7 +16,6 @@ export default async function DossierDetailPage({
 }) {
   const { id } = await params
 
-  // Get User Role from Auth Token
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
@@ -25,66 +24,77 @@ export default async function DossierDetailPage({
   const dossier = await prisma.dossier.findUnique({
     where: { id },
     include: {
-      category: true,
       responsableCS: true,
-      prestataire: true,
-      actionUser: true,
-      etapes: { orderBy: { date: 'desc' } },
+      prestatairePrincipal: true,
+      syndicImplique: true,
+      responsableAction: true,
+      coproprietaireConcerne: true,
+      zoneCommune: true,
+      etapes: { orderBy: { createdAt: 'desc' } },
       documents: { orderBy: { createdAt: 'desc' } },
-      commentaires: { orderBy: { createdAt: 'desc' }, include: { author: true } }
+      commentaires: { orderBy: { createdAt: 'desc' }, include: { auteur: true } },
     }
   })
 
   if (!dossier) notFound()
 
-  const activityLogs = await prisma.activityLog.findMany({
-    where: { targetType: 'Dossier', targetId: id },
+  const activityLogs = await prisma.dossierActivite.findMany({
+    where: { dossierId: id },
     orderBy: { createdAt: 'desc' },
-    include: { user: true }
+    include: { auteur: true }
   })
 
   const getStatusLabel = (statut: string) => {
-    switch(statut) {
-      case 'ENREGISTRE': return 'Enregistré'
-      case 'AFFECTE': return 'Affecté'
-      case 'EN_COURS': return 'En Cours'
-      case 'A_VALIDER': return 'À Valider'
-      case 'CLOTURE': return 'Clôturé'
-      case 'BLOQUE': return 'Bloqué'
-      default: return statut
+    const m: Record<string, string> = {
+      ENREGISTRE: 'Enregistré', AFFECTE: 'Affecté', EN_COURS: 'En Cours',
+      A_VALIDER: 'À Valider', CLOTURE: 'Clôturé', BLOQUE: 'Bloqué', ARCHIVE: 'Archivé',
     }
+    return m[statut] || statut
   }
 
-  // --- SERVER ACTIONS ---
   async function addEtape(formData: FormData) {
     'use server'
-    const title = formData.get('title') as string
+    const titre = formData.get('title') as string
     const status = formData.get('status') as string
-    const comment = formData.get('comment') as string
-    
-    if (title && status) {
+
+    if (titre && status) {
       const cookieStore = await cookies()
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
 
-      await prisma.etape.create({ data: { title, statut: status, comment, dossierId: id } })
-      await prisma.activityLog.create({ data: { action: 'ADDED_ETAPE', targetType: 'Dossier', targetId: id, userId: payload?.id as string }})
+      await prisma.dossierEtape.create({
+        data: {
+          dossierId: id,
+          titre,
+          typeEtape: 'AUTRE',
+          statutEtape: status as any,
+          auteurUserId: payload?.id as string,
+          dateRealisation: status === 'TERMINEE' ? new Date() : null,
+        }
+      })
+      await prisma.dossierActivite.create({
+        data: { dossierId: id, userId: payload?.id as string, typeAction: 'ETAPE_AJOUTEE', resume: `Étape "${titre}" ajoutée` }
+      })
       revalidatePath(`/dossiers/${id}`)
     }
   }
 
   async function addComment(formData: FormData) {
     'use server'
-    const content = formData.get('content') as string
-    
-    if (content) {
+    const contenu = formData.get('content') as string
+
+    if (contenu) {
       const cookieStore = await cookies()
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
 
-      if(payload?.id) {
-        await prisma.commentaire.create({ data: { content, authorId: payload.id as string, dossierId: id } })
-        await prisma.activityLog.create({ data: { action: 'ADDED_COMMENT', targetType: 'Dossier', targetId: id, userId: payload.id as string }})
+      if (payload?.id) {
+        await prisma.dossierCommentaire.create({
+          data: { contenu, auteurUserId: payload.id as string, dossierId: id }
+        })
+        await prisma.dossierActivite.create({
+          data: { dossierId: id, userId: payload.id as string, typeAction: 'COMMENTAIRE_AJOUTE', resume: 'Commentaire ajouté' }
+        })
         revalidatePath(`/dossiers/${id}`)
       }
     }
@@ -94,25 +104,34 @@ export default async function DossierDetailPage({
     'use server'
     const fileName = formData.get('fileName') as string
     const fileUrl = formData.get('fileUrl') as string
-    
+
     if (fileName && fileUrl) {
       const cookieStore = await cookies()
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
 
-      await prisma.document.create({ data: { name: fileName, type: 'LIEN', url: fileUrl, dossierId: id } })
-      await prisma.activityLog.create({ data: { action: 'ADDED_DOCUMENT_LINK', targetType: 'Dossier', targetId: id, userId: payload?.id as string }})
+      const copro = await prisma.copropriete.findFirst()
+      await prisma.document.create({
+        data: {
+          coproprieteId: copro!.id,
+          dossierId: id,
+          typeDocument: 'AUTRE',
+          titre: fileName,
+          nomFichier: fileName,
+          mimeType: 'application/octet-stream',
+          urlOuPath: fileUrl,
+          uploadedById: payload?.id as string,
+        }
+      })
+      await prisma.dossierActivite.create({
+        data: { dossierId: id, userId: payload?.id as string, typeAction: 'DOCUMENT_AJOUTE', resume: `Document "${fileName}" ajouté` }
+      })
       revalidatePath(`/dossiers/${id}`)
     }
   }
-  
-  const getPriorityBadgeClass = (priority: string) => {
-    switch(priority) {
-      case 'urgente': return 'badge-urgent'
-      case 'haute': return 'badge-high'
-      case 'moyenne': return 'badge-normal'
-      default: return 'badge-low'
-    }
+
+  const getPriorityBadgeClass = (p: string) => {
+    switch(p) { case 'CRITIQUE': return 'badge-urgent'; case 'HAUTE': return 'badge-high'; case 'MOYENNE': return 'badge-normal'; default: return 'badge-low'; }
   }
 
   const formatDate = (date: Date) => new Date(date).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -124,7 +143,7 @@ export default async function DossierDetailPage({
           <Link href="/dossiers" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 16, fontSize: 14 }}>
             <ArrowLeft size={16} /> Retour à la liste
           </Link>
-          <h1>{dossier.title}</h1>
+          <h1>{dossier.titre}</h1>
           <div className={styles.badges}>
             <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{dossier.reference}</span>
             <span className={`badge ${getPriorityBadgeClass(dossier.priorite)}`}>Priorité {dossier.priorite}</span>
@@ -133,54 +152,40 @@ export default async function DossierDetailPage({
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <Link href={`/dossiers/${id}/edit`} className="btn btn-outline"><Edit size={16} /> Éditer</Link>
-          <DossierActions 
-            dossierId={id} 
-            isAdmin={isAdmin} 
-            isArchived={dossier.archived} 
-            counts={{
-              etapes: dossier.etapes.length,
-              commentaires: dossier.commentaires.length,
-              documents: dossier.documents.length
-            }} 
+          <DossierActions
+            dossierId={id}
+            isAdmin={isAdmin}
+            isArchived={dossier.archived}
+            counts={{ etapes: dossier.etapes.length, commentaires: dossier.commentaires.length, documents: dossier.documents.length }}
           />
         </div>
       </div>
 
-      {/* Stepper & Action Controls Group */}
-      <DossierStatusControls 
-        dossierId={id} 
-        currentStatus={dossier.statut} 
-        isAdmin={isAdmin} 
-        hasResponsables={!!dossier.responsableCSId} 
-        finalDecision={dossier.finalDecision} 
+      <DossierStatusControls
+        dossierId={id}
+        currentStatus={dossier.statut}
+        isAdmin={isAdmin}
+        hasResponsables={!!dossier.responsableCSId}
+        finalDecision={dossier.finalDecision}
       />
 
       <div className={styles.container}>
-        {/* Colonne Principale */}
         <div className={styles.mainColumn}>
           <div className="card">
             <h2 className={styles.cardTitle}>Informations Générales</h2>
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Catégorie</span>
+                <span className={styles.infoLabel}>Type de dossier</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <FileText size={16} color="var(--text-secondary)" /> {dossier.category.name}
+                  <FileText size={16} color="var(--text-secondary)" /> {dossier.typeDossier}
                 </span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Localisation</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <MapPin size={16} color="var(--text-secondary)" />
-                  {dossier.typeLocalisation ? (
-                    <>
-                      <span style={{ fontWeight: 500 }}>{dossier.typeLocalisation}</span>
-                      {dossier.niveau && ` - ${dossier.niveau}`}
-                      {dossier.localisation && ` (${dossier.localisation})`}
-                      {dossier.precision && ` - ${dossier.precision}`}
-                    </>
-                  ) : (
-                    <>{dossier.building} {dossier.lotZone ? `- ${dossier.lotZone}` : ''}</>
-                  )}
+                  {dossier.zoneCommune?.nom || dossier.precisionLocalisation || 'Non spécifiée'}
+                  {dossier.precisionLocalisation && dossier.zoneCommune ? ` – ${dossier.precisionLocalisation}` : ''}
                 </span>
               </div>
               <div className={styles.infoItem}>
@@ -192,87 +197,82 @@ export default async function DossierDetailPage({
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Responsable CS</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color="var(--text-secondary)" /> {dossier.responsableCS?.name || 'Non assigné'}
+                  <User size={16} color="var(--text-secondary)" /> {dossier.responsableCS?.nomAffiche || 'Non assigné'}
                 </span>
               </div>
               <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Responsable de l'action</span>
+                <span className={styles.infoLabel}>Prestataire / Intervenant</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color="var(--text-secondary)" /> 
-                  {dossier.actionUser ? (
-                    <>{dossier.actionUser.name} (CS)</>
-                  ) : dossier.prestataire ? (
-                    <>{dossier.prestataire.nom} ({dossier.prestataire.type})</>
-                  ) : (
-                    'Non assigné'
-                  )}
+                  <User size={16} color="var(--text-secondary)" />
+                  {dossier.prestatairePrincipal?.nom || dossier.responsableAction?.nom || 'Non assigné'}
                 </span>
               </div>
+              {dossier.syndicImplique && (
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Syndic impliqué</span>
+                  <span className={styles.infoValue}>{dossier.syndicImplique.nom}</span>
+                </div>
+              )}
+              {dossier.coproprietaireConcerne && (
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>Copropriétaire concerné</span>
+                  <span className={styles.infoValue}>{dossier.coproprietaireConcerne.prenom} {dossier.coproprietaireConcerne.nom}</span>
+                </div>
+              )}
             </div>
-            
+
             <div className={styles.description}>
-              <strong>Description de l'incident :</strong><br />
+              <strong>Description :</strong><br />
               {dossier.description}
             </div>
           </div>
 
-          {/* Champs Spécifiques Chauffage */}
-          {(dossier.typeInstallation || dossier.prestataire) && (
-            <div className="card">
-              <h2 className={styles.cardTitle}>Informations Spécifiques (Équipements)</h2>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}><span className={styles.infoLabel}>Type d'installation</span><span className={styles.infoValue}>{dossier.typeInstallation || '-'}</span></div>
-                <div className={styles.infoItem}><span className={styles.infoLabel}>Prestataire de maintenance</span><span className={styles.infoValue}>{dossier.prestataire?.nom || '-'}</span></div>
-                <div className={styles.infoItem}><span className={styles.infoLabel}>Contrat de maintenance</span><span className={styles.infoValue}>{dossier.contratMaintenance || '-'}</span></div>
-                <div className={styles.infoItem}><span className={styles.infoLabel}>Prochaine échéance</span><span className={styles.infoValue} style={{ color: 'var(--danger)', fontWeight: 600 }}>{dossier.nextDeadline ? formatDate(dossier.nextDeadline) : '-'}</span></div>
-              </div>
-            </div>
-          )}
-
+          {/* Étapes */}
           <div className="card">
             <h2 className={styles.cardTitle}>Chronologie des étapes</h2>
             {dossier.etapes.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucune étape enregistrée.</p> : (
               <div className={styles.timeline}>
-                {dossier.etapes.map((etape) => (
+                {dossier.etapes.map((etape: any) => (
                   <div key={etape.id} className={styles.timelineItem}>
                     <div className={styles.timelineDot}></div>
                     <div className={styles.timelineContent}>
                       <div className={styles.timelineHeader}>
-                        <span className={styles.timelineTitle}>{etape.title}</span>
-                        <span className={styles.timelineDate}>{formatDate(etape.date)}</span>
+                        <span className={styles.timelineTitle}>{etape.titre}</span>
+                        <span className={styles.timelineDate}>{formatDate(etape.createdAt)}</span>
                       </div>
-                      {etape.comment && <div className={styles.timelineComment}>{etape.comment}</div>}
-                      <span className="badge badge-normal" style={{ marginTop: 8 }}>{etape.statut}</span>
+                      {etape.description && <div className={styles.timelineComment}>{etape.description}</div>}
+                      <span className="badge badge-normal" style={{ marginTop: 8 }}>{etape.statutEtape}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            
+
             <form action={addEtape} style={{ marginTop: 24, padding: 16, background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
               <h3 style={{ fontSize: 14, marginBottom: 12 }}>Ajouter une étape</h3>
               <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                 <input type="text" name="title" placeholder="Titre (ex: Devis reçu)" className="form-control" style={{ flex: 1 }} required />
                 <select name="status" className="form-control" required>
-                  <option value="terminée">Terminée</option>
-                  <option value="en_attente">En attente</option>
-                  <option value="bloquée">Bloquée</option>
+                  <option value="TERMINEE">Terminée</option>
+                  <option value="EN_ATTENTE">En attente</option>
+                  <option value="BLOQUEE">Bloquée</option>
+                  <option value="A_FAIRE">À faire</option>
                 </select>
               </div>
-              <textarea name="comment" className="form-control" placeholder="Commentaire optionnel..." style={{ width: '100%', marginBottom: 12, resize: 'vertical' }}></textarea>
               <button type="submit" className="btn btn-primary">Ajouter</button>
             </form>
           </div>
-          
+
+          {/* Commentaires */}
           <div className="card">
             <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquare size={18} /> Commentaires internes</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-              {dossier.commentaires.map((c) => (
+              {dossier.commentaires.map((c: any) => (
                 <div key={c.id} style={{ background: 'var(--bg-color)', padding: 16, borderRadius: 'var(--radius-md)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>{c.author.name}</strong> <span>{formatDate(c.createdAt)}</span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{c.auteur.nomAffiche}</strong> <span>{formatDate(c.createdAt)}</span>
                   </div>
-                  <div style={{ fontSize: 14 }}>{c.content}</div>
+                  <div style={{ fontSize: 14 }}>{c.contenu}</div>
                 </div>
               ))}
               {dossier.commentaires.length === 0 && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Aucun commentaire.</span>}
@@ -291,33 +291,32 @@ export default async function DossierDetailPage({
             <h2 className={styles.cardTitle}>Documents Joints</h2>
             <div style={{ marginBottom: 16 }}>
               {dossier.documents.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucun document.</p> : (
-                dossier.documents.map((doc) => (
+                dossier.documents.map((doc: any) => (
                   <div key={doc.id} className={styles.documentItem}>
                     <FileText className={styles.documentIcon} size={24} />
-                    <div className={styles.documentName}>{doc.name}</div>
-                    <a href={doc.url} target="_blank" style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>Ouvrir</a>
+                    <div className={styles.documentName}>{doc.titre}</div>
+                    <a href={doc.urlOuPath} target="_blank" style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>Ouvrir</a>
                   </div>
                 ))
               )}
             </div>
-            
-            {/* Add Document Link Form */}
+
             <form action={uploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-color)', alignItems: 'center' }}>
               <UploadCloud size={24} color="var(--text-secondary)" />
-              <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document (ex: Google Drive, Dropbox)" required style={{ width: '100%', fontSize: 13 }} />
+              <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document" required style={{ width: '100%', fontSize: 13 }} />
               <input type="text" name="fileName" className="form-control" placeholder="Nom du document" required style={{ width: '100%', fontSize: 13 }} />
               <button type="submit" className="btn btn-outline" style={{ width: '100%', fontSize: 13 }}>Ajouter le lien</button>
             </form>
           </div>
 
           <div className="card">
-            <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} /> Journal d'Activité</h2>
+            <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} /> Journal d&apos;Activité</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {activityLogs.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucune activité.</p> : (
-                activityLogs.map((log) => (
+                activityLogs.map((log: any) => (
                   <div key={log.id} style={{ fontSize: 12, paddingBottom: 12, borderBottom: '1px solid var(--border-color)' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.action}</div>
-                    <div style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Par {log.user?.name || 'Système'} le {formatDate(log.createdAt)}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.resume}</div>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Par {log.auteur?.nomAffiche || 'Système'} le {formatDate(log.createdAt)}</div>
                   </div>
                 ))
               )}

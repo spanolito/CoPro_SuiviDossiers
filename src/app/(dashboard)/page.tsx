@@ -7,42 +7,45 @@ const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
 
 export default async function DashboardPage() {
   const dossiers = await prisma.dossier.findMany({
-    include: { responsableCS: true, prestataire: true, category: true }
+    include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true }
   })
 
   // Metrics
-  const countNew = dossiers.filter(d => d.statut === 'ENREGISTRE').length
-  const countAssigned = dossiers.filter(d => d.statut === 'AFFECTE' || d.statut === 'EN_COURS').length
-  const countToValidate = dossiers.filter(d => d.statut === 'A_VALIDER').length
-  const countClosed = dossiers.filter(d => d.statut === 'CLOTURE').length
-  const countBlocked = dossiers.filter(d => d.statut === 'BLOQUE').length
+  const countNew = dossiers.filter((d: any) => d.statut === 'ENREGISTRE').length
+  const countAssigned = dossiers.filter((d: any) => d.statut === 'AFFECTE' || d.statut === 'EN_COURS').length
+  const countToValidate = dossiers.filter((d: any) => d.statut === 'A_VALIDER').length
+  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
+  const countBlocked = dossiers.filter((d: any) => d.statut === 'BLOQUE').length
 
   // Todo Items Lists
-  const unassigned = dossiers.filter(d => !d.responsableCSId && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE')
-  const blocked = dossiers.filter(d => d.statut === 'BLOQUE')
-  const toValidate = dossiers.filter(d => d.statut === 'A_VALIDER')
+  const unassigned = dossiers.filter((d: any) => !d.responsableCSId && d.statut !== 'CLOTURE' && d.statut !== 'BLOQUE' && !d.archived)
+  const blocked = dossiers.filter((d: any) => d.statut === 'BLOQUE')
+  const toValidate = dossiers.filter((d: any) => d.statut === 'A_VALIDER')
 
   // Assignee Breakdown
-  const users = await prisma.user.findMany({
-    include: { dossiersSuivis: true }
+  const users = await prisma.utilisateur.findMany({
+    where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] } },
+    include: { dossiersResponsableCS: true }
   })
-  const staffBreakdown = users.map(u => ({
-    name: u.name,
-    count: u.dossiersSuivis.filter(d => d.statut !== 'CLOTURE').length
-  })).sort((a,b) => b.count - a.count)
+  const staffBreakdown = users.map((u: any) => ({
+    name: u.nomAffiche,
+    count: u.dossiersResponsableCS.filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
+  })).sort((a: any, b: any) => b.count - a.count)
 
-  const prestataires = await prisma.prestataire.findMany({
-    include: { dossiers: true }
+  const intervenants = await prisma.intervenant.findMany({
+    where: { actif: true },
+    include: { dossiersPrestataire: true, dossiersSyndic: true, dossiersAction: true }
   })
-  const prestatairesBreakdown = prestataires.map(i => ({
+  const intervenantsBreakdown = intervenants.map((i: any) => ({
     name: i.nom,
-    count: i.dossiers.filter(d => d.statut !== 'CLOTURE').length
-  })).sort((a,b) => b.count - a.count)
+    count: [...i.dossiersPrestataire, ...i.dossiersAction].filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
+  })).sort((a: any, b: any) => b.count - a.count).filter((x: any) => x.count > 0)
 
   // Recent Streams
-  const activityLogs = await prisma.activityLog.findMany({
+  const activityLogs = await prisma.dossierActivite.findMany({
     take: 6,
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    include: { auteur: true }
   })
 
   const formatTime = (date: Date) => {
@@ -91,28 +94,28 @@ export default async function DashboardPage() {
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><AlertCircle size={18} color="var(--primary)" /> Actions à faire</div>
             <div className={styles.todoList}>
-              {unassigned.length > 0 && unassigned.map(d => (
+              {unassigned.length > 0 && unassigned.map((d: any) => (
                 <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
                   <div className={styles.todoMain}>
-                    <span className={styles.todoTitle}>{d.title}</span>
-                    <span className={styles.todoSub}>Non affecté - {d.category.name} ({d.reference})</span>
+                    <span className={styles.todoTitle}>{d.titre}</span>
+                    <span className={styles.todoSub}>Non affecté – {d.typeDossier} ({d.reference})</span>
                   </div>
                   <span className="badge" style={{ background: '#FFF4E6', color: '#FD7E14', fontSize: 11 }}>À affecter</span>
                 </Link>
               ))}
-              {toValidate.length > 0 && toValidate.map(d => (
+              {toValidate.length > 0 && toValidate.map((d: any) => (
                 <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
                   <div className={styles.todoMain}>
-                    <span className={styles.todoTitle}>{d.title}</span>
-                    <span className={styles.todoSub}>Attente approbation Admin ({d.reference})</span>
+                    <span className={styles.todoTitle}>{d.titre}</span>
+                    <span className={styles.todoSub}>Attente approbation Président ({d.reference})</span>
                   </div>
                   <span className="badge" style={{ background: '#E6FCF5', color: '#099268', fontSize: 11 }}>À clôturer</span>
                 </Link>
               ))}
-              {blocked.length > 0 && blocked.map(d => (
+              {blocked.length > 0 && blocked.map((d: any) => (
                 <Link href={`/dossiers/${d.id}`} key={d.id} className={styles.todoItem}>
                   <div className={styles.todoMain}>
-                    <span className={styles.todoTitle}>{d.title}</span>
+                    <span className={styles.todoTitle}>{d.titre}</span>
                     <span className={styles.todoSub}>Dossier bloqué ({d.reference})</span>
                   </div>
                   <span className="badge" style={{ background: '#FFF5F5', color: '#FA5252', fontSize: 11 }}>Bloqué</span>
@@ -127,11 +130,11 @@ export default async function DashboardPage() {
 
         {/* Sidebar Widgets Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* 3. Répartition Responsables */}
+          {/* 3. Répartition Responsables CS */}
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Suivi CS</div>
             <div className={styles.assigneeList}>
-              {staffBreakdown.map((staff, index) => (
+              {staffBreakdown.map((staff: any, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar}>{getInitials(staff.name)}</div>
@@ -140,20 +143,13 @@ export default async function DashboardPage() {
                   <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', fontSize: 12 }}>{staff.count}</span>
                 </div>
               ))}
-              <div className={styles.assigneeItem}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
-                </div>
-                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.responsableCSId).length}</span>
-              </div>
             </div>
           </div>
 
           <div className={styles.widget}>
-            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Prestataires Actifs</div>
+            <div className={styles.widgetTitle}><Users size={18} color="var(--primary)" /> Intervenants Actifs</div>
             <div className={styles.assigneeList}>
-              {prestatairesBreakdown.map((intv, index) => (
+              {intervenantsBreakdown.map((intv: any, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar} style={{ background: '#e9fac8', color: '#5c940d' }}>{getInitials(intv.name)}</div>
@@ -162,13 +158,6 @@ export default async function DashboardPage() {
                   <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', fontSize: 12 }}>{intv.count}</span>
                 </div>
               ))}
-              <div className={styles.assigneeItem}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className={styles.avatar} style={{ background: '#F8F9FA', color: '#ADB5BD', border: '1px dashed #DEE2E6' }}>?</div>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Non affectés</span>
-                </div>
-                <span className="badge" style={{ background: 'var(--bg-color)', fontSize: 12 }}>{dossiers.filter(d => !d.prestataireId).length}</span>
-              </div>
             </div>
           </div>
 
@@ -176,12 +165,12 @@ export default async function DashboardPage() {
           <div className={styles.widget}>
             <div className={styles.widgetTitle}><LayoutGrid size={18} color="var(--primary)" /> Actions récentes</div>
             <div className={styles.timelineStream}>
-              {activityLogs.map((log) => (
+              {activityLogs.map((log: any) => (
                 <div key={log.id} className={styles.timelineItem}>
                   <div className={styles.timelineDot}></div>
                   <div className={styles.timelineContent}>
-                    <span className={styles.timelineText}>{log.action.replace(/_/g, ' ')}</span>
-                    <span className={styles.timelineTime}>{formatTime(log.createdAt)}</span>
+                    <span className={styles.timelineText}>{log.resume}</span>
+                    <span className={styles.timelineTime}>{log.auteur?.nomAffiche} – {formatTime(log.createdAt)}</span>
                   </div>
                 </div>
               ))}

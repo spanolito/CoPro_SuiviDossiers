@@ -1,6 +1,5 @@
 import prisma from '@/lib/prisma'
 import styles from './users.module.css'
-import { Plus } from 'lucide-react'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { redirect } from 'next/navigation'
@@ -15,13 +14,8 @@ export default async function UsersPage() {
     redirect('/')
   }
 
-  const users = await prisma.user.findMany({
-    include: { role: true },
+  const users = await prisma.utilisateur.findMany({
     orderBy: { createdAt: 'desc' }
-  })
-
-  const roles = await prisma.role.findMany({
-    orderBy: { name: 'asc' }
   })
 
   return (
@@ -33,7 +27,7 @@ export default async function UsersPage() {
         </div>
       </div>
 
-      <UsersClient users={users} roles={roles} currentAdminId={payload.id as string} />
+      <UsersClient users={users} currentAdminId={payload.id as string} />
     </div>
   )
 }

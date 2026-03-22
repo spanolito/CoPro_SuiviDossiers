@@ -3,21 +3,18 @@ import styles from './dossiers.module.css'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 
-// Must pass searchParams to page in Next 15 / App router via async prop
 export default async function DossiersListPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; status?: string; priority?: string; archived_status?: string }>
 }) {
   const { q, status, priority, archived_status } = await searchParams
-
   const activeFilter = archived_status || 'active'
-
 
   const whereClause: any = {}
   if (q) {
     whereClause.OR = [
-      { title: { contains: q } },
+      { titre: { contains: q } },
       { reference: { contains: q } },
     ]
   }
@@ -27,24 +24,22 @@ export default async function DossiersListPage({
   if (activeFilter === 'archived') {
     whereClause.archived = true
   } else if (activeFilter === 'all') {
-    // Show all, don't filter on archived
+    // Show all
   } else {
-    whereClause.archived = false // Default to active only
+    whereClause.archived = false
   }
-
 
   const dossiers = await prisma.dossier.findMany({
     where: whereClause,
-    include: { category: true, responsableCS: true, prestataire: true, actionUser: true },
+    include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true, responsableAction: true },
     orderBy: { updatedAt: 'desc' }
   })
 
-  // Format Helper
-  const getPriorityBadgeClass = (priority: string) => {
-    switch(priority) {
-      case 'urgente': return 'badge-urgent'
-      case 'haute': return 'badge-high'
-      case 'moyenne': return 'badge-normal'
+  const getPriorityBadgeClass = (p: string) => {
+    switch(p) {
+      case 'CRITIQUE': return 'badge-urgent'
+      case 'HAUTE': return 'badge-high'
+      case 'MOYENNE': return 'badge-normal'
       default: return 'badge-low'
     }
   }
@@ -57,8 +52,18 @@ export default async function DossiersListPage({
       case 'A_VALIDER': return 'À Valider'
       case 'CLOTURE': return 'Clôturé'
       case 'BLOQUE': return 'Bloqué'
+      case 'ARCHIVE': return 'Archivé'
       default: return statut
     }
+  }
+
+  const getTypeDossierLabel = (t: string) => {
+    const labels: Record<string, string> = {
+      SINISTRE: 'Sinistre', TECHNIQUE: 'Technique', CHAUFFAGE: 'Chauffage',
+      SECURITE: 'Sécurité', TRAVAUX: 'Travaux', ESPACES_VERTS: 'Espaces verts',
+      JURIDIQUE: 'Juridique', FINANCIER: 'Financier', AG: 'AG', AUTRE: 'Autre',
+    }
+    return labels[t] || t
   }
 
   return (
@@ -66,7 +71,7 @@ export default async function DossiersListPage({
       <div className={styles.pageHeader}>
         <div>
           <h2>Répertoire des dossiers</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Gérez et suivez tous les incidents de la copropriété</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Gérez et suivez tous les dossiers de la copropriété</p>
         </div>
         <Link href="/dossiers/new" className="btn btn-primary">
           <Plus size={18} />
@@ -84,6 +89,7 @@ export default async function DossiersListPage({
           <select id="status" name="status" className="form-control" defaultValue={status}>
             <option value="">Tous les statuts</option>
             <option value="ENREGISTRE">Enregistré</option>
+            <option value="AFFECTE">Affecté</option>
             <option value="EN_COURS">En Cours</option>
             <option value="A_VALIDER">À Valider</option>
             <option value="CLOTURE">Clôturé</option>
@@ -94,10 +100,10 @@ export default async function DossiersListPage({
           <label htmlFor="priority">Priorité</label>
           <select id="priority" name="priority" className="form-control" defaultValue={priority}>
             <option value="">Toutes les priorités</option>
-            <option value="urgente">Urgente</option>
-            <option value="haute">Haute</option>
-            <option value="moyenne">Moyenne</option>
-            <option value="basse">Basse</option>
+            <option value="CRITIQUE">Critique</option>
+            <option value="HAUTE">Haute</option>
+            <option value="MOYENNE">Moyenne</option>
+            <option value="BASSE">Basse</option>
           </select>
         </div>
         <div className={styles.filterGroup}>
@@ -115,12 +121,12 @@ export default async function DossiersListPage({
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Référence</th>
+              <th>Réf.</th>
               <th>Titre</th>
-              <th>Catégorie</th>
+              <th>Type</th>
               <th>Statut</th>
               <th>Priorité</th>
-              <th>CS / Intervenant</th>
+              <th>Responsable CS</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -131,25 +137,21 @@ export default async function DossiersListPage({
                   Aucun dossier trouvé.
                 </td>
               </tr>
-            ) : dossiers.map((d) => (
+            ) : dossiers.map((d: any) => (
               <tr key={d.id}>
                 <td style={{ fontWeight: 600 }}>{d.reference}</td>
                 <td>
-                  <div style={{ fontWeight: 500 }}>{d.title}</div>
+                  <div style={{ fontWeight: 500 }}>{d.titre}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {d.typeLocalisation ? (
-                      <>{d.niveau} {d.localisation ? `(${d.localisation})` : ''}</>
-                    ) : (
-                      <>{d.building} {d.lotZone ? `- ${d.lotZone}` : ''}</>
-                    )}
+                    {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || ''}
                   </div>
                 </td>
-                <td>{d.category.name}</td>
+                <td>{getTypeDossierLabel(d.typeDossier)}</td>
                 <td>
-                  <span className={`badge`} style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', marginRight: 4 }}>
+                  <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                     {getStatusLabel(d.statut)}
                   </span>
-                  {d.archived && <span className="badge" style={{ background: 'var(--warning)', color: 'black' }}>Archivé</span>}
+                  {d.archived && <span className="badge" style={{ background: 'var(--warning)', color: 'black', marginLeft: 4 }}>Archivé</span>}
                 </td>
                 <td>
                   <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
@@ -157,10 +159,7 @@ export default async function DossiersListPage({
                   </span>
                 </td>
                 <td>
-                  <div style={{ fontSize: 13 }}>{d.responsableCS?.name || '-'}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {d.actionUser ? <>{d.actionUser.name} (CS)</> : d.prestataire?.nom || '-'}
-                    </div>
+                  <div style={{ fontSize: 13 }}>{d.responsableCS?.nomAffiche || '-'}</div>
                 </td>
                 <td>
                   <Link href={`/dossiers/${d.id}`} className={`btn btn-outline ${styles.actionBtn}`}>

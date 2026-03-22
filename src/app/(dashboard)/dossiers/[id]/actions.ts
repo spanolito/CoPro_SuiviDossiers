@@ -2,199 +2,133 @@
 
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
-export enum StatutDossier {
-  ENREGISTRE = 'ENREGISTRE',
-  AFFECTE = 'AFFECTE',
-  EN_COURS = 'EN_COURS',
-  A_VALIDER = 'A_VALIDER',
-  CLOTURE = 'CLOTURE',
-  BLOQUE = 'BLOQUE',
-  ARCHIVE = 'ARCHIVE'
+// Re-export enum values for client use
+export const StatutDossier = {
+  ENREGISTRE: 'ENREGISTRE',
+  AFFECTE: 'AFFECTE',
+  EN_COURS: 'EN_COURS',
+  A_VALIDER: 'A_VALIDER',
+  CLOTURE: 'CLOTURE',
+  BLOQUE: 'BLOQUE',
+  ARCHIVE: 'ARCHIVE',
+} as const
+
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  ENREGISTRE: ['AFFECTE', 'BLOQUE'],
+  AFFECTE: ['EN_COURS', 'BLOQUE', 'ENREGISTRE'],
+  EN_COURS: ['A_VALIDER', 'BLOQUE', 'AFFECTE'],
+  A_VALIDER: ['CLOTURE', 'EN_COURS', 'BLOQUE'],
+  CLOTURE: ['ARCHIVE'],
+  BLOQUE: ['ENREGISTRE', 'AFFECTE', 'EN_COURS'],
+  ARCHIVE: [],
 }
 
-async function getAdminUser() {
+async function getCurrentUser() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   if (!token) throw new Error('Non authentifié')
-  
   const payload = await verifyToken(token)
-  if (payload?.role !== 'Admin') {
-    throw new Error('Action non autorisée - Administrateur requis')
-  }
+  if (!payload) throw new Error('Token invalide')
   return payload
 }
 
-export async function archiveDossier(id: string, archive: boolean) {
-  const admin = await getAdminUser()
-  
-  await prisma.dossier.update({
-    where: { id },
-    data: {
-      archived: archive,
-      archivedAt: archive ? new Date() : null,
-      archivedById: archive ? (admin.id as string) : null
-    }
-  })
+export async function updateDossierStatus(dossierId: string, newStatus: string) {
+  const payload = await getCurrentUser()
+  const isAdmin = payload.role === 'Admin'
 
-  await prisma.activityLog.create({
-    data: {
-      action: archive ? 'ARCHIVED_DOSSIER' : 'UNARCHIVED_DOSSIER',
-      targetType: 'Dossier',
-      targetId: id,
-      userId: admin.id as string
-    }
-  })
+  const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } })
+  if (!dossier) throw new Error('Dossier introuvable')
 
-  // Create a real notification
-  const dossier = await prisma.dossier.findUnique({ where: { id }, select: { responsableCSId: true, title: true }})
-  if (dossier?.responsableCSId && dossier.responsableCSId !== admin.id) {
-    await prisma.notification.create({
-      data: {
-        title: archive ? 'Dossier archivé' : 'Dossier désarchivé',
-        message: `Le dossier "${dossier.title}" a été ${archive ? 'archivé' : 'désarchivé'} par l'administrateur.`,
-        userId: dossier.responsableCSId
-      }
-    })
+  const allowed = ALLOWED_TRANSITIONS[dossier.statut] || []
+  if (!allowed.includes(newStatus)) {
+    throw new Error(`Transition de "${dossier.statut}" vers "${newStatus}" non autorisée.`)
   }
 
-  revalidatePath(`/dossiers/${id}`)
-  revalidatePath('/dossiers')
+  if (newStatus === 'CLOTURE' && !isAdmin) {
+    throw new Error('Seul le Président du CS peut clôturer un dossier.')
+  }
+
+  if ((newStatus === 'AFFECTE' || newStatus === 'EN_COURS') && !dossier.responsableCSId) {
+    throw new Error("L'avancement du dossier est bloqué : vous devez définir un Responsable CS.")
+  }
+
+  const updateData: any = { statut: newStatus, dateDerniereAction: new Date() }
+  if (newStatus === 'CLOTURE') {
+    updateData.closedAt = new Date()
+    updateData.clotureParUserId = payload.id as string
+  }
+
+  await prisma.dossier.update({ where: { id: dossierId }, data: updateData })
+
+  await prisma.dossierActivite.create({
+    data: {
+      dossierId,
+      userId: payload.id as string,
+      typeAction: 'STATUT_CHANGE',
+      resume: `Statut changé vers ${newStatus}`,
+    }
+  })
+
+  revalidatePath(`/dossiers/${dossierId}`)
 }
 
-export async function deleteDossiers(id: string) {
-  const admin = await getAdminUser()
-  
-  await prisma.dossier.delete({ where: { id } })
-
-  await prisma.activityLog.create({
-    data: {
-      action: 'DELETED_DOSSIER_HARD',
-      targetType: 'System_Audit',
-      targetId: id,
-      userId: admin.id as string
-    }
-  })
-
-  redirect('/dossiers')
-}
-
-export async function updateDossierStatus(id: string, newStatus: string) {
-  const validStatuses = Object.values(StatutDossier) as string[]
-  if (!validStatuses.includes(newStatus)) {
-    throw new Error('Statut invalide.')
-  }
-
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  if (!token) throw new Error('Non authentifié')
-  const payload = await verifyToken(token)
-
-  if (payload?.role === 'Read-only') {
-    throw new Error('Action non autorisée')
-  }
-
-  const dossier = await prisma.dossier.findUnique({ where: { id } })
-  if (!dossier) throw new Error("Dossier introuvable.")
-
-  // Business Rule: only admin can CLOTURE
-  if (newStatus === StatutDossier.CLOTURE) {
-    if (payload?.role !== 'Admin') {
-      throw new Error('Seul un administrateur peut clôturer ce dossier.')
-    }
-    if (dossier.statut !== StatutDossier.A_VALIDER) {
-      throw new Error('Impossible de clôturer: le dossier doit être "À valider".')
-    }
-  }
-
-  if (newStatus === StatutDossier.A_VALIDER) {
-    if (!dossier.finalDecision) {
-      throw new Error('Une décision finale est requise avant de passer "À valider". Vous devez finaliser le dossier.')
-    }
-  }
-  
-  if (newStatus === StatutDossier.AFFECTE || newStatus === StatutDossier.EN_COURS) {
-    if (!dossier.responsableCSId) {
-      throw new Error("L'avancement du dossier est bloqué : vous devez définir un Responsable CS.")
-    }
-  }
+export async function archiveDossier(dossierId: string) {
+  const payload = await getCurrentUser()
 
   await prisma.dossier.update({
-    where: { id },
-    data: { statut: newStatus }
-  })
-
-  await prisma.activityLog.create({
+    where: { id: dossierId },
     data: {
-      action: `STATUS_UPDATED_${newStatus}`,
-      targetType: 'Dossier',
-      targetId: id,
-      userId: payload?.id as string
+      archived: true,
+      archivedAt: new Date(),
+      archivedById: payload.id as string,
+      statut: 'ARCHIVE',
     }
   })
 
-  revalidatePath(`/dossiers/${id}`)
+  await prisma.dossierActivite.create({
+    data: {
+      dossierId,
+      userId: payload.id as string,
+      typeAction: 'DOSSIER_ARCHIVE',
+      resume: 'Dossier archivé',
+    }
+  })
+
+  revalidatePath(`/dossiers/${dossierId}`)
 }
 
-export async function finalizeDossier(id: string, decision: string) {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  if (!token) throw new Error('Non authentifié')
-  const payload = await verifyToken(token)
-
-  if (payload?.role === 'Read-only') throw new Error('Non autorisé')
+export async function finalizeDossier(dossierId: string, finalDecision: string) {
+  const payload = await getCurrentUser()
 
   await prisma.dossier.update({
-    where: { id },
+    where: { id: dossierId },
     data: {
-      statut: StatutDossier.A_VALIDER,
-      finalDecision: decision,
-      finalizedAt: new Date(),
-      finalizedById: payload?.id as string
+      statut: 'A_VALIDER',
+      finalDecision,
+      finaliseAt: new Date(),
+      validateurFinalId: payload.id as string,
+      dateDerniereAction: new Date(),
     }
   })
 
-  await prisma.activityLog.create({
+  await prisma.dossierActivite.create({
     data: {
-      action: 'DOSSIER_FINALIZED',
-      targetType: 'Dossier',
-      targetId: id,
-      userId: payload?.id as string
+      dossierId,
+      userId: payload.id as string,
+      typeAction: 'DOSSIER_FINALISE',
+      resume: `Dossier finalisé : ${finalDecision}`,
     }
   })
 
-  revalidatePath(`/dossiers/${id}`)
+  revalidatePath(`/dossiers/${dossierId}`)
 }
 
-export async function closeDossier(id: string) {
-  const admin = await getAdminUser() // Enforces Admin role
+export async function deleteDossier(dossierId: string) {
+  const payload = await getCurrentUser()
+  if (payload.role !== 'Admin') throw new Error('Seul le Président peut supprimer un dossier.')
 
-  const dossier = await prisma.dossier.findUnique({ where: { id } })
-  if (!dossier) throw new Error("Dossier introuvable.")
-  if (dossier.statut !== StatutDossier.A_VALIDER) {
-    throw new Error('Impossible de clôturer : le dossier n\'est pas À VALIDER.')
-  }
-
-  await prisma.dossier.update({
-    where: { id },
-    data: {
-      statut: StatutDossier.CLOTURE,
-      closedAt: new Date(),
-      closedById: admin.id as string
-    }
-  })
-
-  await prisma.activityLog.create({
-    data: {
-      action: 'DOSSIER_CLOSED',
-      targetType: 'Dossier',
-      targetId: id,
-      userId: admin.id as string
-    }
-  })
-
-  revalidatePath(`/dossiers/${id}`)
+  await prisma.dossier.delete({ where: { id: dossierId } })
 }

@@ -1,69 +1,72 @@
 import prisma from '@/lib/prisma'
-import styles from './new-dossier.module.css'
+import styles from '../dossiers.module.css'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import LocalisationClient from '@/components/dossiers/LocalisationClient'
-import AssignationClient from '@/components/dossiers/AssignationClient'
+import { cookies } from 'next/headers'
+import { verifyToken } from '@/lib/auth'
 
 export default async function NewDossierPage() {
-  const categories = await prisma.category.findMany()
-  const users = await prisma.user.findMany({ select: { id: true, name: true } })
-  const prestataires = await prisma.prestataire.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
+  const users = await prisma.utilisateur.findMany({ where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] }, isActive: true }, select: { id: true, nomAffiche: true } })
+  const intervenants = await prisma.intervenant.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
+  const zonesCommunes = await prisma.zoneCommune.findMany({ orderBy: { nom: 'asc' } })
 
-  // Server Action
   async function createDossier(formData: FormData) {
     'use server'
-    const title = formData.get('title') as string
-    const categoryId = formData.get('categoryId') as string
-    const priorite = formData.get('priorite') as string
+    const titre = formData.get('titre') as string
     const description = formData.get('description') as string
-    const typeLocalisation = formData.get('typeLocalisation') as string
-    const niveau = formData.get('niveau') as string
-    const localisation = formData.get('localisation') as string
-    const precision = formData.get('precision') as string
-    
     const typeDossier = formData.get('typeDossier') as string
+    const priorite = formData.get('priorite') as string
     const responsableCSId = formData.get('responsableCSId') as string
-    const actionValue = formData.get('actionValue') as string // 'user:id' or 'prestataire:id'
+    const prestatairePrincipalId = formData.get('prestatairePrincipalId') as string
+    const syndicImpliqueId = formData.get('syndicImpliqueId') as string
+    const zoneCommuneId = formData.get('zoneCommuneId') as string
+    const precisionLocalisation = formData.get('precisionLocalisation') as string
 
-    let actionUserId: string | null = null
-    let prestataireId: string | null = null
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth_token')?.value
+    const payload = token ? await verifyToken(token) : null
 
-    if (actionValue) {
-      const [type, id] = actionValue.split(':')
-      if (type === 'user') actionUserId = id
-      if (type === 'prestataire') prestataireId = id
-    }
+    const copro = await prisma.copropriete.findFirst()
+    if (!copro) throw new Error('Copropriété non trouvée')
 
-    // Heating specific context handled if the category is heating (or regardless to not limit it in this demo)
-    const typeInstallation = formData.get('typeInstallation') as string
-    const prestataireForm = formData.get('prestataire') as string // wait, this was the string field!
-    // I already removed the string field 'prestataire' from schema and seed!
-    // I can safely drop reading 'prestataire' string or keep reading it if I need to discard it.
-    // Let's just create variables for schema support.
-    const contratMaintenance = formData.get('contratMaintenance') as string || null
-
-    // Create unique ref DOS-YYYY-XXXX
     const count = await prisma.dossier.count()
-    const ref = `DOS-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`
+    const reference = `DOS-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`
 
     const newDossier = await prisma.dossier.create({
       data: {
-        reference: ref,
-        title,
+        coproprieteId: copro.id,
+        reference,
+        titre,
         description,
+        typeDossier: typeDossier as any,
+        priorite: priorite as any,
         statut: 'ENREGISTRE',
-        priorite,
-        typeLocalisation,
-        niveau,
-        localisation,
-        precision,
-        typeDossier,
-        categoryId,
-        responsableCSId: responsableCSId || null,
-        prestataireId: prestataireId || null,
-        actionUserId: actionUserId || null,
-        typeInstallation,
+        responsableCSId: responsableCSId || payload?.id as string,
+        createurUserId: payload?.id as string,
+        prestatairePrincipalId: prestatairePrincipalId || null,
+        syndicImpliqueId: syndicImpliqueId || null,
+        zoneCommuneId: zoneCommuneId || null,
+        precisionLocalisation: precisionLocalisation || null,
+      }
+    })
+
+    await prisma.dossierActivite.create({
+      data: {
+        dossierId: newDossier.id,
+        userId: payload?.id as string,
+        typeAction: 'DOSSIER_CREE',
+        resume: `Dossier "${titre}" créé`,
+      }
+    })
+
+    await prisma.dossierEtape.create({
+      data: {
+        dossierId: newDossier.id,
+        titre: 'Création du dossier',
+        typeEtape: 'CREATION',
+        statutEtape: 'TERMINEE',
+        auteurUserId: payload?.id as string,
+        dateRealisation: new Date(),
       }
     })
 
@@ -71,52 +74,85 @@ export default async function NewDossierPage() {
   }
 
   return (
-    <div className={styles.formContainer}>
-      <h1 style={{ marginBottom: 24, fontSize: 24 }}>Créer un nouveau dossier</h1>
-
-      <form action={createDossier}>
-        <h2 className={styles.sectionTitle}>Informations Générales</h2>
+    <div>
+      <Link href="/dossiers" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 16, fontSize: 14 }}>
+        ← Retour à la liste
+      </Link>
+      <h1>Nouveau Dossier</h1>
+      <form action={createDossier} className={styles.formCard}>
+        <h2 className={styles.sectionTitle}>Informations principales</h2>
         <div className={styles.formGrid}>
-          <div className={`form-group ${styles.formGroupFull}`}>
-            <label htmlFor="title">Titre de l'incident *</label>
-            <input type="text" id="title" name="title" className="form-control" required />
-          </div>
-          
           <div className="form-group">
-            <label htmlFor="categoryId">Catégorie *</label>
-            <select id="categoryId" name="categoryId" className="form-control" required>
-              <option value="">Sélectionner une catégorie</option>
-              {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <label htmlFor="titre">Titre du dossier *</label>
+            <input type="text" id="titre" name="titre" className="form-control" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="typeDossier">Type de dossier *</label>
+            <select id="typeDossier" name="typeDossier" className="form-control" required>
+              <option value="SINISTRE">Sinistre</option>
+              <option value="TECHNIQUE">Technique</option>
+              <option value="CHAUFFAGE">Chauffage</option>
+              <option value="SECURITE">Sécurité</option>
+              <option value="TRAVAUX">Travaux</option>
+              <option value="ESPACES_VERTS">Espaces verts</option>
+              <option value="JURIDIQUE">Juridique</option>
+              <option value="FINANCIER">Financier</option>
+              <option value="AG">AG</option>
+              <option value="AUTRE">Autre</option>
             </select>
           </div>
-          
           <div className="form-group">
             <label htmlFor="priorite">Priorité *</label>
             <select id="priorite" name="priorite" className="form-control" required>
-              <option value="basse">Basse</option>
-              <option value="moyenne">Moyenne</option>
-              <option value="haute">Haute</option>
-              <option value="urgente">Urgente</option>
+              <option value="MOYENNE">Moyenne</option>
+              <option value="BASSE">Basse</option>
+              <option value="HAUTE">Haute</option>
+              <option value="CRITIQUE">Critique</option>
             </select>
           </div>
-
-          <div className={`form-group ${styles.formGroupFull}`}>
-            <label htmlFor="description">Description détaillée *</label>
-            <textarea id="description" name="description" className="form-control" rows={5} required></textarea>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label htmlFor="description">Description *</label>
+            <textarea id="description" name="description" className="form-control" rows={4} required style={{ resize: 'vertical' }} />
           </div>
         </div>
 
-        <h2 className={styles.sectionTitle}>Localisation & Assignation</h2>
-        <div className={styles.formGrid}>
-          <LocalisationClient />
-          <AssignationClient users={users} prestataires={prestataires} />
-        </div>
-
-        <h2 className={styles.sectionTitle}>Spécifique Chauffage / Équipements techniques</h2>
+        <h2 className={styles.sectionTitle}>Localisation</h2>
         <div className={styles.formGrid}>
           <div className="form-group">
-            <label htmlFor="typeInstallation">Type d'installation</label>
-            <input type="text" id="typeInstallation" name="typeInstallation" className="form-control" placeholder="ex: Chaudière Gaz, PAC" />
+            <label htmlFor="zoneCommuneId">Zone commune concernée</label>
+            <select id="zoneCommuneId" name="zoneCommuneId" className="form-control">
+              <option value="">Aucune (lot privatif)</option>
+              {zonesCommunes.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="precisionLocalisation">Précision localisation</label>
+            <input type="text" id="precisionLocalisation" name="precisionLocalisation" className="form-control" placeholder="ex: Garage n°3, Cave Mme X..." />
+          </div>
+        </div>
+
+        <h2 className={styles.sectionTitle}>Assignation</h2>
+        <div className={styles.formGrid}>
+          <div className="form-group">
+            <label htmlFor="responsableCSId">Responsable CS *</label>
+            <select id="responsableCSId" name="responsableCSId" className="form-control" required>
+              <option value="">Sélectionner</option>
+              {users.map((u: any) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="prestatairePrincipalId">Prestataire principal</label>
+            <select id="prestatairePrincipalId" name="prestatairePrincipalId" className="form-control">
+              <option value="">Aucun</option>
+              {intervenants.filter((i: any) => i.type !== 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.sousType || i.type})</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="syndicImpliqueId">Syndic impliqué</label>
+            <select id="syndicImpliqueId" name="syndicImpliqueId" className="form-control">
+              <option value="">Non</option>
+              {intervenants.filter((i: any) => i.type === 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom}</option>)}
+            </select>
           </div>
         </div>
 

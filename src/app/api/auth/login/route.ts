@@ -10,58 +10,60 @@ export async function POST(request: NextRequest) {
     const { email, password } = body
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+      return NextResponse.json({ error: 'Email et mot de passe requis.' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.utilisateur.findUnique({
       where: { email },
-      include: { role: true },
     })
 
     if (!user) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      return NextResponse.json({ error: 'Identifiants invalides.' }, { status: 401 })
     }
 
     if (user.status === 'PENDING') {
-      return NextResponse.json({ error: 'Votre compte est en attente de validation par un administrateur.' }, { status: 403 })
+      return NextResponse.json({ error: 'Votre compte est en attente de validation par le Président du CS.' }, { status: 403 })
     }
 
     if (user.status === 'DISABLED') {
       return NextResponse.json({ error: 'Votre compte a été désactivé.' }, { status: 403 })
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password)
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash)
 
     if (!passwordMatch) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      return NextResponse.json({ error: 'Identifiants invalides.' }, { status: 401 })
     }
 
-    // Generate JWT
+    const roleLabel = user.role === 'PRESIDENT_CS' ? 'Admin' : user.role === 'MEMBRE_CS' ? 'Conseil syndical' : 'Read-only'
+
     const token = await signToken({
       id: user.id,
       email: user.email,
-      role: user.role.name,
-      name: user.name,
+      role: roleLabel,
+      name: user.nomAffiche,
     })
 
     const response = NextResponse.json(
-      { success: true, user: { id: user.id, email: user.email, name: user.name, role: user.role.name } },
+      { success: true, user: { id: user.id, email: user.email, name: user.nomAffiche, role: roleLabel } },
       { status: 200 }
     )
 
-    // Set cookie
     response.cookies.set({
       name: 'auth_token',
       value: token,
       httpOnly: true,
       path: '/',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 60 * 24,
     })
+
+    // Update last login
+    await prisma.utilisateur.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
 
     return response
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
   }
 }

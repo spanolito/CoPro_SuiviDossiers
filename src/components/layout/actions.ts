@@ -7,8 +7,9 @@ import { verifyToken } from '@/lib/auth'
 export async function getMyNotifications() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
-  const payload = token ? await verifyToken(token) : null
+  if (!token) return []
 
+  const payload = await verifyToken(token)
   if (!payload?.id) return []
 
   return await prisma.notification.findMany({
@@ -21,6 +22,6 @@ export async function getMyNotifications() {
 export async function markAsRead(notificationId: string) {
   await prisma.notification.update({
     where: { id: notificationId },
-    data: { isRead: true }
+    data: { lu: true, luAt: new Date() }
   })
 }

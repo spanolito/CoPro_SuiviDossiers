@@ -1,11 +1,9 @@
 import prisma from '@/lib/prisma'
-import styles from '../../new/new-dossier.module.css' // Reusing the same CSS
-import { redirect, notFound } from 'next/navigation'
+import styles from '../../dossiers.module.css'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { StatutDossier } from '../actions'
-import LocalisationClient from '@/components/dossiers/LocalisationClient'
-import AssignationClient from '@/components/dossiers/AssignationClient'
 
 export default async function EditDossierPage({
   params,
@@ -13,141 +11,124 @@ export default async function EditDossierPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  
   const dossier = await prisma.dossier.findUnique({ where: { id } })
   if (!dossier) notFound()
-  
-  const categories = await prisma.category.findMany()
-  const users = await prisma.user.findMany({ select: { id: true, name: true } })
-  const prestataires = await prisma.prestataire.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
 
-  // Server Action
+  const users = await prisma.utilisateur.findMany({ where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] }, isActive: true }, select: { id: true, nomAffiche: true } })
+  const intervenants = await prisma.intervenant.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
+  const zonesCommunes = await prisma.zoneCommune.findMany({ orderBy: { nom: 'asc' } })
+
   async function updateDossier(formData: FormData) {
     'use server'
-    const title = formData.get('title') as string
-    const categoryId = formData.get('categoryId') as string
-    const priorite = formData.get('priorite') as string
-    const statut = formData.get('statut') as string
-    const validStatuses = Object.values(StatutDossier) as string[]
-    if (!validStatuses.includes(statut)) {
-      throw new Error('Statut invalide.')
-    }
+    const titre = formData.get('titre') as string
     const description = formData.get('description') as string
-    const typeLocalisation = formData.get('typeLocalisation') as string
-    const niveau = formData.get('niveau') as string
-    const localisation = formData.get('localisation') as string
-    const precision = formData.get('precision') as string
-    
     const typeDossier = formData.get('typeDossier') as string
+    const priorite = formData.get('priorite') as string
     const responsableCSId = formData.get('responsableCSId') as string
-    const actionValue = formData.get('actionValue') as string
-
-    let actionUserId: string | null = null
-    let prestataireId: string | null = null
-
-    if (actionValue) {
-      const [type, id] = actionValue.split(':')
-      if (type === 'user') actionUserId = id
-      if (type === 'prestataire') prestataireId = id
-    }
-
-    const typeInstallation = formData.get('typeInstallation') as string
-    const prestataire = formData.get('prestataire') as string
+    const prestatairePrincipalId = formData.get('prestatairePrincipalId') as string
+    const syndicImpliqueId = formData.get('syndicImpliqueId') as string
+    const zoneCommuneId = formData.get('zoneCommuneId') as string
+    const precisionLocalisation = formData.get('precisionLocalisation') as string
 
     await prisma.dossier.update({
       where: { id },
       data: {
-        title,
+        titre,
         description,
-        statut,
-        priorite,
-        typeLocalisation,
-        niveau,
-        localisation,
-        precision,
-        typeDossier,
-        categoryId,
-        responsableCSId: responsableCSId || null,
-        prestataireId: prestataireId || null,
-        actionUserId: actionUserId || null,
-        typeInstallation,
+        typeDossier: typeDossier as any,
+        priorite: priorite as any,
+        responsableCSId: responsableCSId || undefined,
+        prestatairePrincipalId: prestatairePrincipalId || null,
+        syndicImpliqueId: syndicImpliqueId || null,
+        zoneCommuneId: zoneCommuneId || null,
+        precisionLocalisation: precisionLocalisation || null,
+        dateDerniereAction: new Date(),
       }
     })
 
-    await prisma.activityLog.create({ data: { action: 'UPDATED_DOSSIER', targetType: 'Dossier', targetId: id }})
     revalidatePath(`/dossiers/${id}`)
     redirect(`/dossiers/${id}`)
   }
 
   return (
-    <div className={styles.formContainer}>
-      <h1 style={{ marginBottom: 24, fontSize: 24 }}>Éditer le dossier {dossier.reference}</h1>
-
-      <form action={updateDossier}>
-        <h2 className={styles.sectionTitle}>Informations Générales</h2>
+    <div>
+      <Link href={`/dossiers/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 16, fontSize: 14 }}>
+        ← Retour au dossier
+      </Link>
+      <h1>Modifier : {dossier.titre}</h1>
+      <form action={updateDossier} className={styles.formCard}>
+        <h2 className={styles.sectionTitle}>Informations principales</h2>
         <div className={styles.formGrid}>
-          <div className={`form-group ${styles.formGroupFull}`}>
-            <label htmlFor="title">Titre de l'incident *</label>
-            <input type="text" id="title" name="title" className="form-control" defaultValue={dossier.title} required />
-          </div>
-          
           <div className="form-group">
-            <label htmlFor="categoryId">Catégorie *</label>
-            <select id="categoryId" name="categoryId" className="form-control" defaultValue={dossier.categoryId} required>
-              {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <label htmlFor="titre">Titre *</label>
+            <input type="text" id="titre" name="titre" className="form-control" required defaultValue={dossier.titre} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="typeDossier">Type *</label>
+            <select id="typeDossier" name="typeDossier" className="form-control" required defaultValue={dossier.typeDossier}>
+              <option value="SINISTRE">Sinistre</option>
+              <option value="TECHNIQUE">Technique</option>
+              <option value="CHAUFFAGE">Chauffage</option>
+              <option value="SECURITE">Sécurité</option>
+              <option value="TRAVAUX">Travaux</option>
+              <option value="ESPACES_VERTS">Espaces verts</option>
+              <option value="JURIDIQUE">Juridique</option>
+              <option value="FINANCIER">Financier</option>
+              <option value="AG">AG</option>
+              <option value="AUTRE">Autre</option>
             </select>
           </div>
-          
-          <div className="form-group">
-            <label htmlFor="statut">Statut *</label>
-            <select id="statut" name="statut" className="form-control" defaultValue={dossier.statut} required>
-              <option value="ENREGISTRE">Enregistré</option>
-              <option value="AFFECTE">Affecté</option>
-              <option value="EN_COURS">En Cours</option>
-              <option value="A_VALIDER">À Valider</option>
-              <option value="CLOTURE">Clôturé</option>
-              <option value="BLOQUE">Bloqué</option>
-            </select>
-          </div>
-
           <div className="form-group">
             <label htmlFor="priorite">Priorité *</label>
-            <select id="priorite" name="priorite" className="form-control" defaultValue={dossier.priorite} required>
-              <option value="basse">Basse</option>
-              <option value="moyenne">Moyenne</option>
-              <option value="haute">Haute</option>
-              <option value="urgente">Urgente</option>
+            <select id="priorite" name="priorite" className="form-control" required defaultValue={dossier.priorite}>
+              <option value="BASSE">Basse</option>
+              <option value="MOYENNE">Moyenne</option>
+              <option value="HAUTE">Haute</option>
+              <option value="CRITIQUE">Critique</option>
             </select>
           </div>
-
-          <div className={`form-group ${styles.formGroupFull}`}>
-            <label htmlFor="description">Description détaillée *</label>
-            <textarea id="description" name="description" className="form-control" rows={5} defaultValue={dossier.description} required></textarea>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label htmlFor="description">Description *</label>
+            <textarea id="description" name="description" className="form-control" rows={4} required defaultValue={dossier.description} style={{ resize: 'vertical' }} />
           </div>
         </div>
 
-        <h2 className={styles.sectionTitle}>Localisation & Assignation</h2>
-        <div className={styles.formGrid}>
-          <LocalisationClient 
-            initialTypeLoc={dossier.typeLocalisation || ''}
-            initialNiveau={dossier.niveau || ''}
-            initialLoc={dossier.localisation || ''}
-            initialPrecision={dossier.precision || ''}
-          />
-          <AssignationClient 
-            users={users} 
-            prestataires={prestataires} 
-            initialTypeDossier={dossier.typeDossier || 'Autre'}
-            initialResponsableCSId={dossier.responsableCSId || ''}
-            initialActionValue={dossier.actionUserId ? `user:${dossier.actionUserId}` : dossier.prestataireId ? `prestataire:${dossier.prestataireId}` : ''}
-          />
-        </div>
-
-        <h2 className={styles.sectionTitle}>Spécifique Chauffage / Équipements techniques</h2>
+        <h2 className={styles.sectionTitle}>Localisation</h2>
         <div className={styles.formGrid}>
           <div className="form-group">
-            <label htmlFor="typeInstallation">Type d'installation</label>
-            <input type="text" id="typeInstallation" name="typeInstallation" className="form-control" defaultValue={dossier.typeInstallation || ''} />
+            <label htmlFor="zoneCommuneId">Zone commune</label>
+            <select id="zoneCommuneId" name="zoneCommuneId" className="form-control" defaultValue={dossier.zoneCommuneId || ''}>
+              <option value="">Aucune</option>
+              {zonesCommunes.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="precisionLocalisation">Précision</label>
+            <input type="text" id="precisionLocalisation" name="precisionLocalisation" className="form-control" defaultValue={dossier.precisionLocalisation || ''} />
+          </div>
+        </div>
+
+        <h2 className={styles.sectionTitle}>Assignation</h2>
+        <div className={styles.formGrid}>
+          <div className="form-group">
+            <label htmlFor="responsableCSId">Responsable CS *</label>
+            <select id="responsableCSId" name="responsableCSId" className="form-control" required defaultValue={dossier.responsableCSId}>
+              {users.map((u: any) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="prestatairePrincipalId">Prestataire</label>
+            <select id="prestatairePrincipalId" name="prestatairePrincipalId" className="form-control" defaultValue={dossier.prestatairePrincipalId || ''}>
+              <option value="">Aucun</option>
+              {intervenants.filter((i: any) => i.type !== 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.sousType || i.type})</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="syndicImpliqueId">Syndic</label>
+            <select id="syndicImpliqueId" name="syndicImpliqueId" className="form-control" defaultValue={dossier.syndicImpliqueId || ''}>
+              <option value="">Non</option>
+              {intervenants.filter((i: any) => i.type === 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom}</option>)}
+            </select>
           </div>
         </div>
 

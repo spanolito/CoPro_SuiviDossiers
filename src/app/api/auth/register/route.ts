@@ -12,8 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tous les champs sont requis.' }, { status: 400 })
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.utilisateur.findUnique({
       where: { email },
     })
 
@@ -21,50 +20,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cet email est déjà utilisé.' }, { status: 400 })
     }
 
-    // Get default role (Read-only)
-    let defaultRole = await prisma.role.findUnique({
-      where: { name: 'Read-only' },
-    })
-
-    if (!defaultRole) {
-      // In case seed wasn't fully run, fallback or throw
-      defaultRole = await prisma.role.create({
-        data: { name: 'Read-only' }
-      })
+    // Get the copropriete (single one in our case)
+    const copro = await prisma.copropriete.findFirst()
+    if (!copro) {
+      return NextResponse.json({ error: 'Aucune copropriété configurée.' }, { status: 500 })
     }
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.utilisateur.create({
       data: {
-        name,
+        coproprieteId: copro.id,
         email,
-        password: hashedPassword,
-        roleId: defaultRole.id,
+        passwordHash: hashedPassword,
+        nomAffiche: name,
+        role: 'COPROPRIETAIRE_LECTURE',
         status: 'PENDING',
       },
-      include: { role: true },
     })
 
-    // Optionally: Notify Admins of new user
-    const admins = await prisma.user.findMany({
-      where: { role: { name: 'Admin' } }
+    // Notify Président du CS
+    const admins = await prisma.utilisateur.findMany({
+      where: { role: 'PRESIDENT_CS' }
     })
-    
+
     if (admins.length > 0) {
-      const notifications = admins.map(admin => ({
-        title: 'Nouvelle inscription',
-        message: `L'utilisateur ${name} (${email}) demande l'accès et attend validation.`,
-        userId: admin.id
-      }))
-      
-      await prisma.notification.createMany({
-        data: notifications
-      })
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'NOUVEL_UTILISATEUR',
+            titre: 'Nouvelle inscription',
+            message: `L'utilisateur ${name} (${email}) demande l'accès et attend validation.`,
+          }
+        })
+      }
     }
 
     return NextResponse.json(
-      { success: true, user: { id: newUser.id, email: newUser.email, name: newUser.name } },
+      { success: true, user: { id: newUser.id, email: newUser.email, name: newUser.nomAffiche } },
       { status: 201 }
     )
 

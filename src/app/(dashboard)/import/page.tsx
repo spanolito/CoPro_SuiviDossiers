@@ -1,9 +1,6 @@
-import prisma from '@/lib/prisma'
 import ImportForm from './ImportForm'
 
 export default async function ImportPage() {
-  const categories = await prisma.category.findMany()
-
   return (
     <div>
       <div className="pageHeader">
@@ -14,8 +11,8 @@ export default async function ImportPage() {
           </p>
         </div>
       </div>
-      
-      <ImportForm categories={categories} />
+
+      <ImportForm />
     </div>
   )
 }

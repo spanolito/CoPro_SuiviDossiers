@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Clock, AlertCircle, Lock, Play } from 'lucide-react'
-import { updateDossierStatus, finalizeDossier, closeDossier } from './actions'
+import { Check, Clock, AlertCircle, Play } from 'lucide-react'
+import { updateDossierStatus, finalizeDossier } from './actions'
 import styles from './dossier-detail.module.css'
 
 interface Props {
@@ -32,7 +32,7 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
     setLoading(true)
     try {
       if (currentStatus === 'ENREGISTRE') {
-         if (!hasResponsables) { alert("Veuillez d'abord affecter un Responsable CS et un Responsable d'action (Intervenant) via le bouton Éditer."); }
+         if (!hasResponsables) { alert("Veuillez d'abord affecter un Responsable CS via le bouton Éditer."); }
          else await updateDossierStatus(dossierId, 'AFFECTE')
       } else if (currentStatus === 'AFFECTE') {
         await updateDossierStatus(dossierId, 'EN_COURS')
@@ -61,7 +61,7 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
   const handleClose = async () => {
     setLoading(true)
     try {
-      await closeDossier(dossierId)
+      await updateDossierStatus(dossierId, 'CLOTURE')
     } catch (err: any) {
       alert(err.message)
     } finally {
@@ -71,13 +71,12 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
 
   return (
     <div>
-      {/* 1. Stepper indicator */}
       <div className={styles.stepperContainer}>
         <div className={styles.stepper}>
           {stages.map((stage, index) => {
             const isCompleted = index < currentIndex || currentStatus === 'CLOTURE'
             const isActive = index === currentIndex && currentStatus !== 'CLOTURE'
-            
+
             return (
               <div key={stage.key} className={`${styles.stepItem} ${isActive ? styles.active : ''} ${isCompleted ? styles.completed : ''}`}>
                 <div className={styles.stepDot}>
@@ -90,7 +89,6 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
         </div>
       </div>
 
-      {/* 2. Decided / final notes info box */}
       {finalDecision && (
          <div className="card" style={{ background: '#FFFDF9', borderColor: '#FADB9F', marginBottom: 24 }}>
            <strong style={{ fontSize: 13, color: '#D48806', display: 'flex', alignItems: 'center', gap: 6 }}><AlertCircle size={14} /> Décision finale enregistrée :</strong>
@@ -98,7 +96,6 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
          </div>
       )}
 
-      {/* 3. Action Buttons control bar */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, justifyContent: 'flex-end' }}>
         {currentIndex >= 0 && currentIndex < 3 && currentStatus !== 'BLOQUE' && (
           <button className="btn btn-primary" onClick={handleAdvance} disabled={loading}>
@@ -114,20 +111,19 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
 
         {currentStatus === 'A_VALIDER' && !isAdmin && (
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Clock size={16} /> En attente de clôture par un Administrateur
+            <Clock size={16} /> En attente de clôture par le Président du CS
           </div>
         )}
       </div>
 
-      {/* Finalize Modal */}
       {showFinalizeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right:0, bottom:0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
           <div className="card" style={{ width: 400, background: 'white' }}>
-            <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Flag size={18} color="var(--primary)" /> Finalisation du Dossier</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>Veuillez enregistrer la décision finale ou conclusion avant de demander la validation aux admins.</p>
-            <textarea 
-              className="form-control" 
-              placeholder="Décision, conclusion, résultats..." 
+            <h3 style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={18} color="var(--primary)" /> Finalisation du Dossier</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>Veuillez enregistrer la décision finale ou conclusion avant de demander la validation au Président du CS.</p>
+            <textarea
+              className="form-control"
+              placeholder="Décision, conclusion, résultats..."
               style={{ width: '100%', minHeight: 100, marginBottom: 16 }}
               value={decisionText}
               onChange={(e) => setDecisionText(e.target.value)}
@@ -142,8 +138,4 @@ export default function DossierStatusControls({ dossierId, currentStatus, isAdmi
       )}
     </div>
   )
-}
-
-function Flag({ size, color }: { size?: number, color?: string }) {
-  return <Clock size={size} color={color} />
 }

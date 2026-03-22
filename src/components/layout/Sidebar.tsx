@@ -26,7 +26,7 @@ export default function Sidebar() {
     <aside className={styles.sidebar}>
       <div className={styles.logo}>
         <Building className={styles.navItemIcon} />
-        CoPro Master
+        CoPro Suivi
       </div>
       <nav className={styles.nav}>
         {navItems.map((item) => {

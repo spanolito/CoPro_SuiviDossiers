@@ -6,16 +6,17 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
-const ADMIN_ROLE_NAME = 'Admin'
 const ALLOWED_STATUSES = ['PENDING', 'ACTIVE', 'DISABLED'] as const
+const ALLOWED_ROLES = ['PRESIDENT_CS', 'MEMBRE_CS', 'COPROPRIETAIRE_LECTURE'] as const
 
 type Status = (typeof ALLOWED_STATUSES)[number]
+type Role = (typeof ALLOWED_ROLES)[number]
 
 type UpdateUserPayload = {
   userId: string
   name?: string
   email?: string
-  roleId?: string
+  role?: string
   status?: string
 }
 
@@ -25,63 +26,44 @@ async function checkAdmin() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
-  if (payload?.role !== ADMIN_ROLE_NAME) {
+  if (payload?.role !== 'Admin') {
     throw new Error('Unauthorized')
   }
   return payload
 }
 
-async function getAdminRoleId() {
-  const adminRole = await prisma.role.findUnique({
-    where: { name: ADMIN_ROLE_NAME }
-  })
-
-  if (!adminRole) {
-    throw new Error('Le rôle Admin est manquant.')
-  }
-
-  return adminRole.id
-}
-
 export async function updateUserDetails(payload: UpdateUserPayload): Promise<UpdateUserResult> {
-  const admin = await checkAdmin()
-  const adminRoleId = await getAdminRoleId()
+  await checkAdmin()
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.utilisateur.findUnique({
     where: { id: payload.userId },
-    include: { role: true }
   })
 
   if (!user) {
     return { error: 'Utilisateur introuvable.' }
   }
 
-  const updates: Prisma.UserUncheckedUpdateInput = {}
+  const updates: Prisma.UtilisateurUncheckedUpdateInput = {}
 
   if (payload.name !== undefined) {
     const trimmedName = payload.name.trim()
-    if (!trimmedName) {
-      return { error: 'Le nom est requis.' }
-    }
-    updates.name = trimmedName
+    if (!trimmedName) return { error: 'Le nom est requis.' }
+    updates.nomAffiche = trimmedName
   }
 
   if (payload.email !== undefined) {
     const trimmedEmail = payload.email.trim()
-    if (!trimmedEmail) {
-      return { error: "L'email est requis." }
-    }
+    if (!trimmedEmail) return { error: "L'email est requis." }
     updates.email = trimmedEmail
   }
 
-  let resolvedRoleId = user.roleId
-  if (payload.roleId !== undefined) {
-    const role = await prisma.role.findUnique({ where: { id: payload.roleId } })
-    if (!role) {
+  let resolvedRole: string = user.role
+  if (payload.role !== undefined) {
+    if (!ALLOWED_ROLES.includes(payload.role as Role)) {
       return { error: 'Rôle invalide.' }
     }
-    updates.roleId = role.id
-    resolvedRoleId = role.id
+    updates.role = payload.role as Role
+    resolvedRole = payload.role
   }
 
   let resolvedStatus: string = user.status
@@ -90,7 +72,7 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     if (!ALLOWED_STATUSES.includes(normalizedStatus as Status)) {
       return { error: 'Statut invalide.' }
     }
-    updates.status = normalizedStatus
+    updates.status = normalizedStatus as Status
     resolvedStatus = normalizedStatus
   }
 
@@ -98,24 +80,21 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     return { error: 'Aucune modification détectée.' }
   }
 
-  const wasActiveAdmin = user.roleId === adminRoleId && user.status === 'ACTIVE'
-  const willBeActiveAdmin = resolvedRoleId === adminRoleId && resolvedStatus === 'ACTIVE'
+  // Protect last admin
+  const wasActiveAdmin = user.role === 'PRESIDENT_CS' && user.status === 'ACTIVE'
+  const willBeActiveAdmin = resolvedRole === 'PRESIDENT_CS' && resolvedStatus === 'ACTIVE'
 
   if (wasActiveAdmin && !willBeActiveAdmin) {
-    const activeAdminCount = await prisma.user.count({
-      where: {
-        roleId: adminRoleId,
-        status: 'ACTIVE'
-      }
+    const activeAdminCount = await prisma.utilisateur.count({
+      where: { role: 'PRESIDENT_CS', status: 'ACTIVE' }
     })
-
     if (activeAdminCount <= 1) {
-      return { error: 'Vous ne pouvez pas retirer le dernier administrateur actif.' }
+      return { error: 'Vous ne pouvez pas retirer le dernier Président actif.' }
     }
   }
 
   try {
-    await prisma.user.update({
+    await prisma.utilisateur.update({
       where: { id: payload.userId },
       data: updates
     })

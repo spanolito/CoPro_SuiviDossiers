@@ -7,172 +7,721 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  id    String @id @default(cuid())
-  name  String @unique // "Admin", "Conseil syndical", "Read-only"
-  users User[]
+// ─── ENUMS (stored as String in SQLite) ───
+
+enum RoleUtilisateur {
+  PRESIDENT_CS
+  MEMBRE_CS
+  COPROPRIETAIRE_LECTURE
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  
-  roleId    String
-  role      Role     @relation(fields: [roleId], references: [id])
-  
-  status    String   @default("PENDING") // PENDING, ACTIVE, DISABLED
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  dossiersSuivis   Dossier[] @relation("ResponsableCS")
-  dossiersActions  Dossier[] @relation("ActionUser")
-  commentaires     Commentaire[]
-  activityLogs     ActivityLog[]
-  archivedDossiers Dossier[] @relation("ArchivedDossiers")
-  notifications    Notification[]
-  finalizedDossiers Dossier[] @relation("FinalizedDossiers")
-  closedDossiers   Dossier[] @relation("ClosedDossiers")
+enum StatutUtilisateur {
+  PENDING
+  ACTIVE
+  DISABLED
 }
 
-model Category {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  dossiers Dossier[]
+enum TypeLot {
+  APPARTEMENT
+  CAVE
+  GARAGE
+  LOCAL_TECHNIQUE
+  AUTRE
+}
+
+enum TypeZoneCommune {
+  CAGE_ESCALIER
+  ASCENSEUR
+  CHAUFFERIE
+  VMC
+  LOCAL_POUBELLES
+  TOITURE
+  TERRASSE
+  JARDIN
+  FACADE_NORD
+  FACADE_SUD
+  FACADE_EST
+  FACADE_OUEST
+  RESEAUX_COMMUNS
+  PARTIES_COMMUNES_GENERALES
+  RAMPE_ACCES_GARAGES
+  AUTRE
+}
+
+enum TypeLocalisation {
+  APPARTEMENT_PRIVATIF
+  PARTIE_COMMUNE
+  EQUIPEMENT_TECHNIQUE
+  EXTERIEUR
+  SOUS_SOL_GARAGE
+}
+
+enum TypeIntervenant {
+  SYNDIC
+  PRESTATAIRE
+  ASSURANCE
+  EXPERT
+  AVOCAT
+  ADMINISTRATION
+  COPROPRIETAIRE
+  AUTRE
+}
+
+enum TypeDossier {
+  SINISTRE
+  TECHNIQUE
+  CHAUFFAGE
+  SECURITE
+  TRAVAUX
+  ESPACES_VERTS
+  JURIDIQUE
+  FINANCIER
+  AG
+  AUTRE
+}
+
+enum StatutDossier {
+  ENREGISTRE
+  AFFECTE
+  EN_COURS
+  A_VALIDER
+  CLOTURE
+  BLOQUE
+  ARCHIVE
+}
+
+enum PrioriteDossier {
+  BASSE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+enum NiveauRisque {
+  FAIBLE
+  MODERE
+  ELEVE
+  MAJEUR
+}
+
+enum OrigineSignalement {
+  CS
+  COPROPRIETAIRE
+  SYNDIC
+  PRESTATAIRE
+  AG
+  AUTRE
+}
+
+enum TypeEtape {
+  CREATION
+  AFFECTATION
+  VISITE
+  DEVIS_DEMANDE
+  DEVIS_RECU
+  DEVIS_VALIDE
+  RELANCE
+  REPONSE_RECUE
+  INTERVENTION_PLANIFIEE
+  INTERVENTION_REALISEE
+  DECISION
+  FINALISATION
+  VALIDATION
+  CLOTURE
+  AUTRE
+}
+
+enum StatutEtape {
+  A_FAIRE
+  EN_ATTENTE
+  TERMINEE
+  BLOQUEE
+}
+
+enum TypeActionDossier {
+  DOSSIER_CREE
+  DOSSIER_MODIFIE
+  STATUT_CHANGE
+  RESPONSABLE_CS_CHANGE
+  PRESTATAIRE_CHANGE
+  SYNDIC_CHANGE
+  INTERVENANT_AJOUTE
+  ETAPE_AJOUTEE
+  ETAPE_MODIFIEE
+  COMMENTAIRE_AJOUTE
+  DOCUMENT_AJOUTE
+  RELANCE_AJOUTEE
+  DOSSIER_FINALISE
+  DOSSIER_VALIDE
+  DOSSIER_CLOTURE
+  DOSSIER_ARCHIVE
+}
+
+enum TypeAG {
+  ORDINAIRE
+  EXTRAORDINAIRE
+}
+
+enum StatutAG {
+  CONVOQUEE
+  TENUE
+  PV_EN_ATTENTE
+  CLOTUREE
+}
+
+enum ResultatResolution {
+  ADOPTEE
+  REJETEE
+  SANS_VOTE
+  REPORTEE
+}
+
+enum TypeDocument {
+  PV_AG
+  CONVOCATION_AG
+  DEVIS
+  FACTURE
+  RAPPORT_EXPERT
+  RAPPORT_TECHNIQUE
+  COURRIER_SYNDIC
+  COURRIEL
+  PHOTO
+  CONTRAT
+  AUTRE
+}
+
+enum SourceDocument {
+  UPLOAD
+  IMPORT_PDF
+  EMAIL
+  SYNDIC
+  CS
+  PRESTATAIRE
+  AUTRE
+}
+
+enum TypeNotification {
+  DOSSIER_A_VALIDER
+  DOSSIER_BLOQUE
+  RELANCE_A_FAIRE
+  NOUVEAU_DOCUMENT
+  NOUVEL_UTILISATEUR
+  AG_PROCHE
+}
+
+enum CibleRelanceType {
+  SYNDIC
+  PRESTATAIRE
+  ASSURANCE
+  EXPERT
+  AVOCAT
+  COPROPRIETAIRE
+  AUTRE
+}
+
+enum StatutRelance {
+  PREVUE
+  ENVOYEE
+  RECUE
+  SANS_REPONSE
+  CLOTUREE
+}
+
+// ─── MODELS ───
+
+model Copropriete {
+  id          String   @id @default(cuid())
+  nom         String
+  adresse     String
+  ville       String
+  codePostal  String
+  pays        String   @default("France")
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  batiments       Batiment[]
+  niveaux         Niveau[]
+  lots            Lot[]
+  zonesCommunes   ZoneCommune[]
+  utilisateurs    Utilisateur[]
+  coproprietaires Coproprietaire[]
+  intervenants    Intervenant[]
+  dossiers        Dossier[]
+  assemblees      AssembleeGenerale[]
+  documents       Document[]
+}
+
+model Batiment {
+  id            String   @id @default(cuid())
+  coproprieteId String
+  nom           String
+  code          String?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  copropriete   Copropriete @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  niveaux       Niveau[]
+  lots          Lot[]
+  zonesCommunes ZoneCommune[]
+  dossiers      Dossier[]
+
+  @@index([coproprieteId])
+}
+
+model Niveau {
+  id            String   @id @default(cuid())
+  coproprieteId String
+  batimentId    String?
+  code          String
+  nom           String
+  ordre         Int
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  copropriete   Copropriete @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  batiment      Batiment?   @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  lots          Lot[]
+  zonesCommunes ZoneCommune[]
+  dossiers      Dossier[]
+
+  @@index([coproprieteId])
+  @@index([batimentId])
+}
+
+model Lot {
+  id            String   @id @default(cuid())
+  coproprieteId String
+  batimentId    String?
+  niveauId      String?
+  numero        String
+  type          TypeLot
+  libelle       String
+  tantiemes     Int?
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  copropriete     Copropriete @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  batiment        Batiment?   @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  niveau          Niveau?     @relation(fields: [niveauId], references: [id], onDelete: SetNull)
+  coproprietaires CoproprietaireLot[]
+  dossiers        Dossier[]
+
+  @@index([coproprieteId])
+  @@index([batimentId])
+  @@index([niveauId])
+  @@unique([coproprieteId, numero])
+}
+
+model ZoneCommune {
+  id            String          @id @default(cuid())
+  coproprieteId String
+  batimentId    String?
+  niveauId      String?
+  type          TypeZoneCommune
+  nom           String
+  description   String?
+  actif         Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  copropriete Copropriete @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  batiment    Batiment?   @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  niveau      Niveau?     @relation(fields: [niveauId], references: [id], onDelete: SetNull)
+  dossiers    Dossier[]
+
+  @@index([coproprieteId])
+  @@index([batimentId])
+  @@index([niveauId])
+}
+
+model Utilisateur {
+  id            String            @id @default(cuid())
+  coproprieteId String
+  email         String            @unique
+  passwordHash  String
+  nomAffiche    String
+  prenom        String?
+  nom           String?
+  telephone     String?
+  role          RoleUtilisateur
+  status        StatutUtilisateur @default(PENDING)
+  isActive      Boolean           @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  copropriete          Copropriete          @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  coproprietaire       Coproprietaire?
+
+  dossiersCrees        Dossier[]            @relation("DossierCreateur")
+  dossiersResponsableCS Dossier[]           @relation("DossierResponsableCS")
+  dossiersValides      Dossier[]            @relation("DossierValidateurFinal")
+  dossiersClotures     Dossier[]            @relation("DossierCloturePar")
+  dossiersArchives     Dossier[]            @relation("DossierArchivePar")
+
+  etapesAuteur         DossierEtape[]
+  activitesAuteur      DossierActivite[]
+  commentairesAuteur   DossierCommentaire[]
+  documentsUploades    Document[]
+  notifications        Notification[]
+  relancesAuteur       Relance[]
+
+  @@index([coproprieteId])
+  @@index([role])
+  @@index([status])
+}
+
+model Coproprietaire {
+  id             String   @id @default(cuid())
+  coproprieteId  String
+  civilite       String?
+  prenom         String
+  nom            String
+  email          String?
+  telephone      String?
+  adressePostale String?
+  userId         String?  @unique
+  actif          Boolean  @default(true)
+  notesInternes  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  copropriete       Copropriete       @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  user              Utilisateur?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lots              CoproprietaireLot[]
+  dossiersConcernes Dossier[]         @relation("DossierCoproprietaireConcerne")
+
+  @@index([coproprieteId])
+}
+
+model CoproprietaireLot {
+  id               String         @id @default(cuid())
+  coproprietaireId String
+  lotId            String
+  quotePart        Float?
+  estPrincipal     Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+
+  coproprietaire Coproprietaire @relation(fields: [coproprietaireId], references: [id], onDelete: Cascade)
+  lot            Lot            @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+  @@unique([coproprietaireId, lotId])
+  @@index([lotId])
+}
+
+model Intervenant {
+  id               String          @id @default(cuid())
+  coproprieteId    String
+  nom              String
+  type             TypeIntervenant
+  sousType         String?
+  email            String?
+  telephone        String?
+  adresse          String?
+  contactPrincipal String?
+  notes            String?
+  actif            Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  copropriete              Copropriete        @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  dossiersPrestataire      Dossier[]          @relation("DossierPrestatairePrincipal")
+  dossiersSyndic           Dossier[]          @relation("DossierSyndicImplique")
+  dossiersAssurance        Dossier[]          @relation("DossierAssuranceImplique")
+  dossiersAction           Dossier[]          @relation("DossierResponsableAction")
+  etapes                   DossierEtape[]
+  missions                 IntervenantMission[]
+  relancesCiblePrestataire Relance[]          @relation("RelancePrestataire")
+  relancesCibleSyndic      Relance[]          @relation("RelanceSyndic")
+  relancesCibleAssurance   Relance[]          @relation("RelanceAssurance")
+  resolutionsProposees     ResolutionAG[]     @relation("ResolutionPrestatairePropose")
+
+  @@index([coproprieteId])
+  @@index([type])
 }
 
 model Dossier {
-  id                String      @id @default(cuid())
-  reference         String      @unique
-  title             String
-  description       String
-  statut            String      // e.g. nouveau, en_analyse, resolu, cloture
-  priorite          String      // e.g. basse, moyenne, haute, urgente
-  amount            Float?
+  id                       String             @id @default(cuid())
+  coproprieteId            String
+  reference                String             @unique
+  titre                    String
+  description              String
+  typeDossier              TypeDossier
+  statut                   StatutDossier      @default(ENREGISTRE)
+  priorite                 PrioriteDossier    @default(MOYENNE)
+  niveauRisque             NiveauRisque       @default(MODERE)
+  origineSignalement       OrigineSignalement @default(CS)
 
-  // Localisation
-  building          String?     @default("Le Bâtiment Unique")
-  lotZone           String?
-  niveau            String?
-  localisation      String?
-  typeLocalisation  String?
-  precision         String?
+  dateSignalement          DateTime?
+  dateOuverture            DateTime           @default(now())
+  dateDerniereAction       DateTime?
+  dateProchaineAction      DateTime?
+  dateEcheance             DateTime?
 
-  // Relations
-  categoryId        String
-  category          Category    @relation(fields: [categoryId], references: [id])
-  
-  responsableCSId   String?
-  responsableCS     User?       @relation("ResponsableCS", fields: [responsableCSId], references: [id], onDelete: SetNull)
-  
-  prestataireId     String?
-  prestataire       Prestataire? @relation(fields: [prestataireId], references: [id], onDelete: SetNull)
-  
-  actionUserId      String?
-  actionUser        User?       @relation("ActionUser", fields: [actionUserId], references: [id], onDelete: SetNull)
-  
-  typeDossier       String       @default("Autre") // Sécurité, Travaux, Chauffage, Espaces verts, Juridique, Autre
-  
-  // Specific Heating Fields
-  typeInstallation  String?
-  contratMaintenance String?
-  lastMaintenance   DateTime?
-  nextDeadline      DateTime?
+  responsableCSId          String
+  createurUserId           String
+  validateurFinalId        String?
+  clotureParUserId         String?
+  archivedById             String?
 
-  // Dates
-  dueDate           DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  prestatairePrincipalId   String?
+  syndicImpliqueId         String?
+  assuranceImpliqueId      String?
+  responsableActionId      String?
+  coproprietaireConcerneId String?
 
-  etapes            Etape[]
-  commentaires      Commentaire[]
-  documents         Document[]
+  batimentId               String?
+  niveauId                 String?
+  lotId                    String?
+  zoneCommuneId            String?
+  typeLocalisation         TypeLocalisation?
+  precisionLocalisation    String?
 
-  archived         Boolean   @default(false)
-  archivedAt       DateTime?
-  archivedById     String?
-  archivedBy       User?     @relation("ArchivedDossiers", fields: [archivedById], references: [id])
+  typeInstallation         String?
+  contratMaintenance       String?
+  derniereMaintenanceAt    DateTime?
+  prochaineMaintenanceAt   DateTime?
 
-  finalDecision    String?
-  finalizedAt      DateTime?
-  finalizedById    String?
-  finalizedBy      User?     @relation("FinalizedDossiers", fields: [finalizedById], references: [id])
+  finalDecision            String?
+  finalConclusion          String?
+  finaliseAt               DateTime?
+  closedAt                 DateTime?
 
-  closedAt         DateTime?
-  closedById       String?
-  closedBy         User?     @relation("ClosedDossiers", fields: [closedById], references: [id])
+  archived                 Boolean            @default(false)
+  archivedAt               DateTime?
+
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  copropriete          Copropriete    @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  createur             Utilisateur    @relation("DossierCreateur", fields: [createurUserId], references: [id], onDelete: Restrict)
+  responsableCS        Utilisateur    @relation("DossierResponsableCS", fields: [responsableCSId], references: [id], onDelete: Restrict)
+  validateurFinal      Utilisateur?   @relation("DossierValidateurFinal", fields: [validateurFinalId], references: [id], onDelete: SetNull)
+  cloturePar           Utilisateur?   @relation("DossierCloturePar", fields: [clotureParUserId], references: [id], onDelete: SetNull)
+  archivePar           Utilisateur?   @relation("DossierArchivePar", fields: [archivedById], references: [id], onDelete: SetNull)
+
+  prestatairePrincipal Intervenant?   @relation("DossierPrestatairePrincipal", fields: [prestatairePrincipalId], references: [id], onDelete: SetNull)
+  syndicImplique       Intervenant?   @relation("DossierSyndicImplique", fields: [syndicImpliqueId], references: [id], onDelete: SetNull)
+  assuranceImpliquee   Intervenant?   @relation("DossierAssuranceImplique", fields: [assuranceImpliqueId], references: [id], onDelete: SetNull)
+  responsableAction    Intervenant?   @relation("DossierResponsableAction", fields: [responsableActionId], references: [id], onDelete: SetNull)
+
+  coproprietaireConcerne Coproprietaire? @relation("DossierCoproprietaireConcerne", fields: [coproprietaireConcerneId], references: [id], onDelete: SetNull)
+
+  batiment       Batiment?    @relation(fields: [batimentId], references: [id], onDelete: SetNull)
+  niveau         Niveau?      @relation(fields: [niveauId], references: [id], onDelete: SetNull)
+  lot            Lot?         @relation(fields: [lotId], references: [id], onDelete: SetNull)
+  zoneCommune    ZoneCommune? @relation(fields: [zoneCommuneId], references: [id], onDelete: SetNull)
+
+  etapes               DossierEtape[]
+  activites            DossierActivite[]
+  commentaires         DossierCommentaire[]
+  documents            Document[]
+  relances             Relance[]
+  missionsIntervenants IntervenantMission[]
+  resolutionsLiees     ResolutionAG[]
+
+  @@index([coproprieteId])
+  @@index([statut])
+  @@index([typeDossier])
+  @@index([responsableCSId])
+  @@index([prestatairePrincipalId])
+  @@index([syndicImpliqueId])
+  @@index([lotId])
+  @@index([zoneCommuneId])
+  @@index([archived])
 }
 
-model Etape {
-  id          String   @id @default(cuid())
-  title       String
-  statut      String
-  comment     String?
-  date        DateTime @default(now())
-  
-  dossierId   String
-  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+model IntervenantMission {
+  id              String      @id @default(cuid())
+  dossierId       String
+  intervenantId   String
+  roleDansDossier String
+  dateDebut       DateTime?
+  dateFin         DateTime?
+  actif           Boolean     @default(true)
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  dossier     Dossier     @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  intervenant Intervenant @relation(fields: [intervenantId], references: [id], onDelete: Cascade)
+
+  @@index([dossierId])
+  @@index([intervenantId])
 }
 
-model Commentaire {
-  id          String   @id @default(cuid())
-  content     String
-  createdAt   DateTime @default(now())
-  
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
+model DossierEtape {
+  id              String      @id @default(cuid())
+  dossierId       String
+  titre           String
+  description     String?
+  typeEtape       TypeEtape
+  statutEtape     StatutEtape @default(A_FAIRE)
+  datePrevue      DateTime?
+  dateRealisation DateTime?
+  auteurUserId    String
+  intervenantId   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  dossier     Dossier      @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  auteur      Utilisateur  @relation(fields: [auteurUserId], references: [id], onDelete: Restrict)
+  intervenant Intervenant? @relation(fields: [intervenantId], references: [id], onDelete: SetNull)
+
+  @@index([dossierId])
+  @@index([auteurUserId])
+  @@index([intervenantId])
+}
+
+model DossierActivite {
+  id          String            @id @default(cuid())
   dossierId   String
-  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  userId      String?
+  typeAction  TypeActionDossier
+  resume      String
+  createdAt   DateTime          @default(now())
+
+  dossier Dossier      @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  auteur  Utilisateur? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([dossierId])
+  @@index([userId])
+  @@index([typeAction])
+}
+
+model DossierCommentaire {
+  id           String   @id @default(cuid())
+  dossierId    String
+  auteurUserId String
+  contenu      String
+  interne      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dossier Dossier     @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  auteur  Utilisateur @relation(fields: [auteurUserId], references: [id], onDelete: Restrict)
+
+  @@index([dossierId])
+  @@index([auteurUserId])
+}
+
+model AssembleeGenerale {
+  id                    String   @id @default(cuid())
+  coproprieteId         String
+  dateAG                DateTime
+  typeAG                TypeAG   @default(ORDINAIRE)
+  statut                StatutAG @default(CONVOQUEE)
+  lieu                  String?
+  notes                 String?
+  pvDocumentId          String?
+  convocationDocumentId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  copropriete Copropriete  @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  resolutions ResolutionAG[]
+
+  @@index([coproprieteId])
+  @@index([dateAG])
+}
+
+model ResolutionAG {
+  id                   String             @id @default(cuid())
+  assembleeGeneraleId  String
+  numero               String
+  titre                String
+  description          String?
+  majorite             String?
+  resultat             ResultatResolution @default(SANS_VOTE)
+  detailsVote          String?
+  prestataireProposeId String?
+  montantHT            Float?
+  montantTTC           Float?
+  dateDebutTravaux     DateTime?
+  dossierLieId         String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  assembleeGenerale  AssembleeGenerale @relation(fields: [assembleeGeneraleId], references: [id], onDelete: Cascade)
+  prestatairePropose Intervenant?      @relation("ResolutionPrestatairePropose", fields: [prestataireProposeId], references: [id], onDelete: SetNull)
+  dossierLie         Dossier?          @relation(fields: [dossierLieId], references: [id], onDelete: SetNull)
+
+  @@index([assembleeGeneraleId])
+  @@index([prestataireProposeId])
+  @@index([dossierLieId])
+  @@unique([assembleeGeneraleId, numero])
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  name        String
-  type        String
-  url         String
-  description String?
-  createdAt   DateTime @default(now())
-  
-  dossierId   String
-  dossier     Dossier  @relation(fields: [dossierId], references: [id], onDelete: Cascade)
-}
+  id            String       @id @default(cuid())
+  coproprieteId String
+  dossierId     String?
+  typeDocument  TypeDocument
+  titre         String
+  nomFichier    String
+  mimeType      String
+  urlOuPath     String
+  dateDocument  DateTime?
+  uploadedById  String?
+  source        SourceDocument @default(UPLOAD)
+  tags          String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-model ActivityLog {
-  id          String   @id @default(cuid())
-  action      String   // e.g. "CREATED", "UPDATED_STATUS"
-  targetType  String   // e.g. "Dossier", "Etape", "Document"
-  targetId    String   
-  createdAt   DateTime @default(now())
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  copropriete Copropriete  @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
+  dossier     Dossier?     @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  uploadedBy  Utilisateur? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([coproprieteId])
+  @@index([dossierId])
+  @@index([typeDocument])
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  
+  id        String           @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      TypeNotification
+  titre     String
+  message   String
+  lien      String?
+  lu        Boolean          @default(false)
+  luAt      DateTime?
+  createdAt DateTime         @default(now())
+
+  utilisateur Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lu])
 }
 
-model Prestataire {
-  id        String   @id @default(cuid())
-  nom       String
-  type      String   // technique, espaces verts, chauffage, juridique, syndic
-  email     String?
-  telephone String?
-  actif     Boolean  @default(true)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Relance {
+  id                  String           @id @default(cuid())
+  dossierId           String
+  cibleType           CibleRelanceType
+  objet               String
+  message             String?
+  dateEnvoi           DateTime
+  dateReponseAttendue DateTime?
+  dateReponseRecue    DateTime?
+  statut              StatutRelance    @default(PREVUE)
+  auteurUserId        String
+  syndicCibleId       String?
+  prestataireCibleId  String?
+  assuranceCibleId    String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  dossiers  Dossier[]
+  dossier          Dossier      @relation(fields: [dossierId], references: [id], onDelete: Cascade)
+  auteur           Utilisateur  @relation(fields: [auteurUserId], references: [id], onDelete: Restrict)
+  syndicCible      Intervenant? @relation("RelanceSyndic", fields: [syndicCibleId], references: [id], onDelete: SetNull)
+  prestataireCible Intervenant? @relation("RelancePrestataire", fields: [prestataireCibleId], references: [id], onDelete: SetNull)
+  assuranceCible   Intervenant? @relation("RelanceAssurance", fields: [assuranceCibleId], references: [id], onDelete: SetNull)
+
+  @@index([dossierId])
+  @@index([auteurUserId])
+  @@index([statut])
 }
-

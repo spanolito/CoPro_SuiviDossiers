@@ -4,43 +4,53 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function createImportsBulk(dossiers: any[]) {
-  const admin = await prisma.user.findFirst({ where: { role: { name: 'Admin' } } })
-  
+  const admin = await prisma.utilisateur.findFirst({ where: { role: 'PRESIDENT_CS' } })
+  const copro = await prisma.copropriete.findFirst()
+
+  if (!admin || !copro) throw new Error('Configuration manquante')
+
   const count = await prisma.dossier.count()
-  let currentCount = count + 1;
+  let currentCount = count + 1
   const year = new Date().getFullYear()
 
   for (const d of dossiers) {
-    const ref = `DOS-${year}-${String(currentCount).padStart(3, '0')}`
-    currentCount++;
+    const ref = `DOS-${year}-${String(currentCount).padStart(4, '0')}`
+    currentCount++
 
     const newDoc = await prisma.dossier.create({
       data: {
+        coproprieteId: copro.id,
         reference: ref,
-        title: d.title,
-        description: d.description,
-        statut: d.statut,
-        priorite: d.priorite,
-        categoryId: d.categoryId,
-        responsableCSId: admin?.id || null, // default assign to admin
-        etapes: {
-          create: {
-            title: 'Import depuis compte rendu',
-            statut: 'terminée'
-          }
-        }
+        titre: d.title || d.titre,
+        description: d.description || '',
+        typeDossier: d.typeDossier || 'AUTRE',
+        statut: d.statut || 'ENREGISTRE',
+        priorite: d.priorite || 'MOYENNE',
+        responsableCSId: admin.id,
+        createurUserId: admin.id,
       }
     })
-    
-    await prisma.activityLog.create({ 
-      data: { 
-        action: 'IMPORTED_DOSSIER_BULK', 
-        targetType: 'Dossier', 
-        targetId: newDoc.id,
-        userId: admin?.id 
+
+    await prisma.dossierActivite.create({
+      data: {
+        dossierId: newDoc.id,
+        userId: admin.id,
+        typeAction: 'DOSSIER_CREE',
+        resume: 'Dossier importé depuis texte',
+      }
+    })
+
+    await prisma.dossierEtape.create({
+      data: {
+        dossierId: newDoc.id,
+        titre: 'Import depuis compte rendu',
+        typeEtape: 'CREATION',
+        statutEtape: 'TERMINEE',
+        auteurUserId: admin.id,
+        dateRealisation: new Date(),
       }
     })
   }
-  
+
   revalidatePath('/dossiers')
 }
