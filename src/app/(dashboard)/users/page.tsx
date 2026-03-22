@@ -10,7 +10,7 @@ export default async function UsersPage() {
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  if (payload?.role !== 'Admin') {
+  if (payload?.role !== 'Admin' && payload?.role !== 'Conseil syndical') {
     redirect('/')
   }
 
@@ -27,7 +27,7 @@ export default async function UsersPage() {
         </div>
       </div>
 
-      <UsersClient users={users} currentAdminId={payload.id as string} />
+      <UsersClient users={users} currentAdminId={payload.id as string} currentUserRole={payload.role as string} />
     </div>
   )
 }

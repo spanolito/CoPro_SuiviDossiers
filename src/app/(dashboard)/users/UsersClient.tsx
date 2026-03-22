@@ -26,8 +26,9 @@ const formatRoleName = (role: string) => {
   return r?.label ?? role
 }
 
-export default function UsersClient({ users, currentAdminId }: { users: User[]; currentAdminId: string }) {
+export default function UsersClient({ users, currentAdminId, currentUserRole }: { users: User[]; currentAdminId: string; currentUserRole: string }) {
   const router = useRouter()
+  const isReadOnly = currentUserRole === 'Conseil syndical'
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [alert, setAlert] = useState<Alert | null>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -139,7 +140,7 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                   <select
                     value={user.status}
                     onChange={(event) => handleStatusChange(user, event.target.value)}
-                    disabled={user.id === currentAdminId || loadingId === user.id}
+                    disabled={user.id === currentAdminId || loadingId === user.id || isReadOnly}
                     className="form-control"
                     style={{ padding: '4px 8px', fontSize: 13, minWidth: 120 }}
                   >
@@ -152,7 +153,7 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                   <select
                     value={user.role}
                     onChange={(event) => handleRoleChange(user, event.target.value)}
-                    disabled={user.id === currentAdminId || loadingId === user.id}
+                    disabled={user.id === currentAdminId || loadingId === user.id || isReadOnly}
                     className="form-control"
                     style={{ padding: '4px 8px', fontSize: 13, minWidth: 140 }}
                   >
@@ -165,10 +166,12 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                   {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                 </td>
                 <td style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
-                    Modifier
-                  </button>
-                  {user.id !== currentAdminId && (
+                  {!isReadOnly && (
+                    <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
+                      Modifier
+                    </button>
+                  )}
+                  {!isReadOnly && user.id !== currentAdminId && (
                     <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
                       Réinit. MDP
                     </button>
