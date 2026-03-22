@@ -3,6 +3,7 @@
 import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateUserDetails } from './actions'
+import { adminResetPassword } from '@/app/(dashboard)/profil/actions'
 import styles from './users.module.css'
 
 type User = { id: string; nomAffiche: string; email: string; status: string; role: string; createdAt: Date }
@@ -33,6 +34,10 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
   const [modalError, setModalError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formValues, setFormValues] = useState({ name: '', email: '', role: 'COPROPRIETAIRE_LECTURE', status: 'ACTIVE' })
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selectedUser) {
@@ -160,10 +165,15 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                 <td style={{ color: 'var(--text-secondary)' }}>
                   {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                 </td>
-                <td>
+                <td style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
                     Modifier
                   </button>
+                  {user.id !== currentAdminId && (
+                    <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
+                      Réinit. MDP
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -233,6 +243,38 @@ export default function UsersClient({ users, currentAdminId }: { users: User[]; 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {resetTarget && (
+        <div className={styles.modalOverlay} onClick={(e) => { if (e.currentTarget === e.target) { setResetTarget(null) } }}>
+          <div className={styles.modal} role="dialog" aria-modal="true">
+            <div className={styles.modalHeader}>
+              <h3>Réinitialiser le mot de passe de {resetTarget.nomAffiche}</h3>
+              <button type="button" className={styles.modalCloseButton} onClick={() => setResetTarget(null)} aria-label="Fermer">×</button>
+            </div>
+            <div className={styles.modalBody}>
+              {resetError && <p className={styles.modalError} role="alert">{resetError}</p>}
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>Définissez un mot de passe temporaire pour cet utilisateur. Il pourra le changer depuis son profil.</p>
+              <div className={styles.formField}>
+                <label className={styles.formLabel} htmlFor="resetPwd">Mot de passe temporaire</label>
+                <input id="resetPwd" type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} className={styles.formInput} minLength={6} placeholder="Minimum 6 caractères" />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button type="button" className={styles.secondaryButton} onClick={() => setResetTarget(null)}>Annuler</button>
+              <button type="button" className={styles.primaryButton} disabled={resetLoading || resetPassword.length < 6} onClick={async () => {
+                setResetLoading(true); setResetError(null)
+                try {
+                  const res = await adminResetPassword(resetTarget.id, resetPassword)
+                  if (res.error) { setResetError(res.error) } else { setAlert({ tone: 'success', message: `Mot de passe de ${resetTarget.nomAffiche} réinitialisé.` }); setResetTarget(null) }
+                } catch { setResetError('Erreur inattendue.') }
+                finally { setResetLoading(false) }
+              }}>
+                {resetLoading ? 'Réinitialisation...' : 'Réinitialiser'}
+              </button>
+            </div>
           </div>
         </div>
       )}
