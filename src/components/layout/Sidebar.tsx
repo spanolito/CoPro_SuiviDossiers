@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Building } from 'lucide-react'
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Building, Upload } from 'lucide-react'
 import styles from './layout.module.css'
 
 export default function Sidebar() {
@@ -12,6 +12,7 @@ export default function Sidebar() {
   const navItems = [
     { name: 'Vue d\'ensemble', href: '/', icon: LayoutDashboard },
     { name: 'Dossiers', href: '/dossiers', icon: FileText },
+    { name: 'Import', href: '/import', icon: Upload },
     { name: 'Utilisateurs', href: '/users', icon: Users },
     { name: 'Paramètres', href: '/settings', icon: Settings },
   ]
