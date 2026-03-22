@@ -369,6 +369,7 @@ model Utilisateur {
   documentsUploades    Document[]
   notifications        Notification[]
   relancesAuteur       Relance[]
+  auditLogs            AuditLog[]
 
   @@index([coproprieteId])
   @@index([role])
@@ -724,4 +725,17 @@ model Relance {
   @@index([dossierId])
   @@index([auteurUserId])
   @@index([statut])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String   // "LOGIN", "USER_UPDATE", "PASSWORD_RESET"
+  description String
+  createdAt   DateTime @default(now())
+
+  utilisateur Utilisateur? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
 }

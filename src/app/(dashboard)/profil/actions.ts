@@ -110,6 +110,15 @@ export async function adminResetPassword(targetUserId: string, temporaryPassword
     data: { passwordHash: newHash }
   })
 
+  // Log action
+  await prisma.auditLog.create({
+    data: {
+      userId: payload.id as string,
+      action: 'PASSWORD_RESET',
+      description: `Réinitialisation du mot de passe de l'utilisateur ${targetUserId}`,
+    }
+  })
+
   return { success: true }
 }
 

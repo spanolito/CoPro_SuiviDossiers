@@ -33,7 +33,7 @@ async function checkAdmin() {
 }
 
 export async function updateUserDetails(payload: UpdateUserPayload): Promise<UpdateUserResult> {
-  await checkAdmin()
+  const admin = await checkAdmin()
 
   const user = await prisma.utilisateur.findUnique({
     where: { id: payload.userId },
@@ -91,6 +91,15 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     await prisma.utilisateur.update({
       where: { id: payload.userId },
       data: updates
+    })
+
+    // Log action
+    await prisma.auditLog.create({
+      data: {
+        userId: admin.id as string,
+        action: 'USER_UPDATE',
+        description: `Modification de l'utilisateur ${payload.userId} (${Object.keys(updates).join(', ')})`,
+      }
     })
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
