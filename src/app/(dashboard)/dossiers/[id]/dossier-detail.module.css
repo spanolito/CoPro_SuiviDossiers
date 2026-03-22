@@ -161,3 +161,22 @@
   font-weight: 500;
   flex: 1;
 }
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+  
+  .headerActions {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .badges {
+    flex-wrap: wrap;
+  }
+}
