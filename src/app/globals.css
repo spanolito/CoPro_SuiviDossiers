@@ -7,16 +7,16 @@
   --text-secondary: #747681;
   --border-color: #F0EDE9;
   
-  --primary: #FDBF44; /* Orange/Yellow primary from mockup */
-  --primary-hover: #E4A934;
+  --primary: #435A6F; /* Sober blue-grey */
+  --primary-hover: #324454;
   --danger: #FF6B6B;
   --success: #51CF66;
   --warning: #FCC419;
   --info: #339AF0;
 
   /* Soft Backgrounds for states (Sober look) */
-  --primary-bg: #FFF9E6;
-  --primary-text: #925C08;
+  --primary-bg: #EFF3F6;
+  --primary-text: #233342;
 
   --success-bg: #E6FCF5;
   --success-text: #099268;
