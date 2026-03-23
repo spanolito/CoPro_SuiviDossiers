@@ -244,6 +244,16 @@ model Copropriete {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Configuration Application & Workflow
+  logoUrl                       String?
+  officialEmail                 String?
+  globalNotifs                 Boolean @default(true)
+  validationRequiredBeforeClose Boolean @default(false)
+  allowBlockedStatus            Boolean @default(true)
+  allowEditAfterValidation      Boolean @default(false)
+  defaultValidationDelay        Int @default(7)
+  defaultReminderDelay          Int @default(3)
+
   batiments       Batiment[]
   niveaux         Niveau[]
   lots            Lot[]
@@ -357,6 +367,17 @@ model Utilisateur {
   lastLoginAt   DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
+  // Préférences Utilisateur
+  timezone        String @default("Europe/Paris")
+  dateFormat      String @default("JJ/MM/AAAA")
+  timeFormat      String @default("24h")
+  density         String @default("Confortable")
+  notifDossier    Boolean @default(true)
+  notifStatut     Boolean @default(true)
+  notifCommentaire Boolean @default(true)
+  notifValidation  Boolean @default(true)
+  notifFrequency  String @default("Instantané")
 
   copropriete          Copropriete          @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
   coproprietaire       Coproprietaire?
