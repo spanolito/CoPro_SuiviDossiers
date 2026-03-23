@@ -48,8 +48,8 @@ const ROLE_MAPPING: Record<Role, Permission[]> = {
 function mapRole(roleStr: string | undefined): Role {
   if (!roleStr) return Role.COPROPRIETAIRE
   const r = roleStr.toLowerCase()
-  if (r === 'admin') return Role.ADMIN
-  if (r === 'cs') return Role.CS_MEMBER
+  if (r === 'admin' || r === 'president_cs') return Role.ADMIN
+  if (r === 'cs' || r === 'membre_cs') return Role.CS_MEMBER
   return Role.COPROPRIETAIRE
 }
 

@@ -174,7 +174,13 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
             </div>
           </div>
         )
-      case 'compte':
+      case 'compte': {
+        const formatRole = (r: string) => {
+          if (r === 'PRESIDENT_CS' || r === 'admin') return 'Président du CS'
+          if (r === 'MEMBRE_CS' || r === 'cs') return 'Membre du CS'
+          if (r === 'COPROPRIETAIRE_LECTURE') return 'Copropriétaire'
+          return r
+        }
         return (
           <div style={cardStyle}>
             <h3>Mon compte</h3>
@@ -184,7 +190,7 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
                 {account.nomAffiche?.substring(0, 2).toUpperCase()}
               </div>
               <div>
-                <span className="badge badge-normal" style={{ fontSize: 11 }}>{user.role}</span>
+                <span className="badge badge-normal" style={{ fontSize: 11 }}>{formatRole(user.role)}</span>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{user.email}</p>
               </div>
             </div>
@@ -230,6 +236,7 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
             )}
           </div>
         )
+      }
       case 'notifications':
         return (
           <div style={cardStyle}>

@@ -171,6 +171,7 @@ a {
   font-size: 12px;
   font-weight: 600;
   text-transform: none; /* Removed capitalize as it might break some abbreviations */
+  white-space: nowrap;
 }
 
 /* Priority & State Badges */

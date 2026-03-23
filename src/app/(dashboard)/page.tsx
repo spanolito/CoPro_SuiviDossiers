@@ -208,7 +208,9 @@ export default async function DashboardPage() {
                       </td>
 
                       <td>
-                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13 }}>{d.responsableCS?.nomAffiche || '-'}</span>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', maxWidth: '140px' }}>
+                          {d.responsableCS?.nomAffiche || '-'}
+                        </span>
                       </td>
                       <td>
                         {d.dateEcheance ? (
