@@ -45,7 +45,7 @@ function buildHtml({ body, template, data }: Pick<EmailPayload, 'body' | 'templa
 
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.5;">
-      <p>${body ?? 'Notification CoPro Suivi'}</p>
+      <p>${body ?? 'Notification Conseil Syndical - L\'Ambassadeur'}</p>
     </div>
   `
 }
