@@ -39,6 +39,7 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   overflow-x: auto;
+  container-type: inline-size;
 }
 
 .table {
@@ -106,7 +107,7 @@
   justify-content: flex-end;
 }
 
-@media (max-width: 768px) {
+@container (max-width: 950px) {
   .tableContainer {
     border: none;
     background: transparent;

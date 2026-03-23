@@ -11,6 +11,7 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   overflow-x: auto;
+  container-type: inline-size;
 }
 
 .table {
@@ -243,7 +244,7 @@
   gap: 8px;
 }
 
-@media (max-width: 768px) {
+@container (max-width: 920px) {
   .tableContainer {
     border: none;
     background: transparent;
