@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Edit, Trash2, ExternalLink } from 'lucide-react'
-import { createPrestataire, updatePrestataire, deletePrestataire } from './actions'
+import { Plus, Edit, Trash2, ExternalLink, RefreshCw } from 'lucide-react'
+import { createPrestataire, updatePrestataire, deletePrestataire, syncPrestataires } from './actions'
 
 type Prestataire = {
   id: string
@@ -27,6 +27,7 @@ export default function PrestatairesClient({
   const [items, setItems] = useState<any[]>(initialData)
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [editItem, setEditItem] = useState<Prestataire | null>(null)
   
   const [formValues, setFormValues] = useState({
@@ -51,6 +52,22 @@ export default function PrestatairesClient({
   const handleCreate = () => {
     resetForm()
     setShowModal(true)
+  }
+
+  const handleSync = async () => {
+    if (!confirm('Voulez-vous importer les prestataires par défaut ?')) return
+    setSyncing(true)
+    try {
+      const res = await syncPrestataires()
+      alert(res.message || 'Synchronisation réussie')
+      const { getPrestataires } = await import('./actions')
+      const updated = await getPrestataires()
+      setItems(updated)
+    } catch (err: any) {
+      alert(err.message || 'Erreur de synchronisation')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const handleEdit = (p: Prestataire) => {
@@ -113,9 +130,19 @@ export default function PrestatairesClient({
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Consultez et gérez la liste des fournisseurs et prestataires.</p>
         </div>
         {canEdit && (
-          <button onClick={handleCreate} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Plus size={16} /> Ajouter un prestataire
-          </button>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button 
+              onClick={handleSync} 
+              className="btn btn-outline" 
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }} 
+              disabled={syncing}
+            >
+              <RefreshCw size={16} /> {syncing ? 'Mise à jour...' : 'Synchroniser'}
+            </button>
+            <button onClick={handleCreate} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Plus size={16} /> Ajouter un prestataire
+            </button>
+          </div>
         )}
       </div>
 
