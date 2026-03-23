@@ -1,14 +1,17 @@
 'use server'
 
+import { requirePermission } from '@/lib/auth/server'
+
 import prisma from '@/lib/prisma'
 import { notifyAll } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 
 export async function createImportsBulk(dossiers: any[]) {
-  const admin = await prisma.utilisateur.findFirst({ where: { role: 'PRESIDENT_CS' } })
-  const copro = await prisma.copropriete.findFirst()
+  const payload = await requirePermission('dossier.create')
+  const userId = payload.id as string
 
-  if (!admin || !copro) throw new Error('Configuration manquante')
+  const copro = await prisma.copropriete.findFirst()
+  if (!copro) throw new Error('Configuration manquante')
 
   const count = await prisma.dossier.count()
   let currentCount = count + 1
@@ -27,15 +30,15 @@ export async function createImportsBulk(dossiers: any[]) {
         typeDossier: d.typeDossier || 'AUTRE',
         statut: d.statut || 'ENREGISTRE',
         priorite: d.priorite || 'MOYENNE',
-        responsableCSId: admin.id,
-        createurUserId: admin.id,
+        responsableCSId: userId,
+        createurUserId: userId,
       }
     })
 
     await prisma.dossierActivite.create({
       data: {
         dossierId: newDoc.id,
-        userId: admin.id,
+        userId: userId,
         typeAction: 'DOSSIER_CREE',
         resume: 'Dossier importé depuis texte',
       }
@@ -47,7 +50,7 @@ export async function createImportsBulk(dossiers: any[]) {
         titre: 'Import depuis compte rendu',
         typeEtape: 'CREATION',
         statutEtape: 'TERMINEE',
-        auteurUserId: admin.id,
+        auteurUserId: userId,
         dateRealisation: new Date(),
       }
     })

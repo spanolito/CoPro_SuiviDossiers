@@ -1,16 +1,10 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { cookies } from 'next/headers'
-import { verifyToken } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth/server'
 
 export async function getMyNotifications() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  if (!token) return []
-
-  const payload = await verifyToken(token)
-  if (!payload?.id) return []
+  const payload = await requireAuth()
 
   return await prisma.notification.findMany({
     where: { userId: payload.id as string },
@@ -20,8 +14,14 @@ export async function getMyNotifications() {
 }
 
 export async function markAsRead(notificationId: string) {
-  await prisma.notification.update({
-    where: { id: notificationId },
+  const payload = await requireAuth()
+
+  // On utilise updateMany pour pouvoir filtrer par userId et garantir l'ownership
+  await prisma.notification.updateMany({
+    where: { 
+      id: notificationId,
+      userId: payload.id as string
+    },
     data: { lu: true, luAt: new Date() }
   })
 }

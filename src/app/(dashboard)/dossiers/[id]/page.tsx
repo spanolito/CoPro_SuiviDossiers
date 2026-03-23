@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import styles from './dossier-detail.module.css'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Calendar, User, MapPin, Edit, MessageSquare, UploadCloud, Activity } from 'lucide-react'
@@ -9,6 +10,7 @@ import { verifyToken } from '@/lib/auth'
 import DossierActions from './DossierActions'
 import DossierStatusControls from './DossierStatusControls'
 import { getDossierCapabilities } from '@/lib/auth/rbac'
+import { requirePermission } from '@/lib/auth/server'
 
 export default async function DossierDetailPage({
   params,
@@ -23,19 +25,24 @@ export default async function DossierDetailPage({
   const isAdmin = payload?.role === 'admin'
   const capabilities = getDossierCapabilities(payload?.role as string)
 
+  const includeParams: Prisma.DossierInclude = {
+    responsableCS: true,
+    prestatairePrincipal: true,
+    syndicImplique: true,
+    responsableAction: true,
+    coproprietaireConcerne: true,
+    zoneCommune: true,
+    etapes: { orderBy: { createdAt: 'desc' } },
+    documents: { orderBy: { createdAt: 'desc' } },
+  }
+
+  if (capabilities.canCommentInternal) {
+    includeParams.commentaires = { orderBy: { createdAt: 'desc' }, include: { auteur: true } }
+  }
+
   const dossier = await prisma.dossier.findUnique({
     where: { id },
-    include: {
-      responsableCS: true,
-      prestatairePrincipal: true,
-      syndicImplique: true,
-      responsableAction: true,
-      coproprietaireConcerne: true,
-      zoneCommune: true,
-      etapes: { orderBy: { createdAt: 'desc' } },
-      documents: { orderBy: { createdAt: 'desc' } },
-      commentaires: { orderBy: { createdAt: 'desc' }, include: { auteur: true } },
-    }
+    include: includeParams
   })
 
   if (!dossier) notFound()
@@ -60,13 +67,7 @@ export default async function DossierDetailPage({
     const status = formData.get('status') as string
 
     if (titre && status) {
-      const cookieStore = await cookies()
-      const token = cookieStore.get('auth_token')?.value
-      const payload = token ? await verifyToken(token) : null
-
-      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
-        throw new Error('Action non autorisée : accès en lecture seule.')
-      }
+      const payload = await requirePermission('dossier.step.add')
 
       await prisma.dossierEtape.create({
         data: {
@@ -90,13 +91,7 @@ export default async function DossierDetailPage({
     const contenu = formData.get('content') as string
 
     if (contenu) {
-      const cookieStore = await cookies()
-      const token = cookieStore.get('auth_token')?.value
-      const payload = token ? await verifyToken(token) : null
-
-      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
-        throw new Error('Action non autorisée : accès en lecture seule.')
-      }
+      const payload = await requirePermission('dossier.comment.internal')
 
       if (payload?.id) {
         await prisma.dossierCommentaire.create({
@@ -116,13 +111,7 @@ export default async function DossierDetailPage({
     const fileUrl = formData.get('fileUrl') as string
 
     if (fileName && fileUrl) {
-      const cookieStore = await cookies()
-      const token = cookieStore.get('auth_token')?.value
-      const payload = token ? await verifyToken(token) : null
-
-      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
-        throw new Error('Action non autorisée : accès en lecture seule.')
-      }
+      const payload = await requirePermission('dossier.document.add')
 
       const copro = await prisma.copropriete.findFirst()
       await prisma.document.create({
@@ -284,27 +273,27 @@ export default async function DossierDetailPage({
           </div>
 
           {/* Commentaires */}
-          <div className="card">
-            <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquare size={18} /> Commentaires internes</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-              {dossier.commentaires.map((c: any) => (
-                <div key={c.id} style={{ background: 'var(--bg-color)', padding: 16, borderRadius: 'var(--radius-md)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>{c.auteur.nomAffiche}</strong> <span>{formatDate(c.createdAt)}</span>
+          {capabilities.canCommentInternal && (
+            <div className="card">
+              <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquare size={18} /> Commentaires internes</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+                {(dossier.commentaires || []).map((c: any) => (
+                  <div key={c.id} style={{ background: 'var(--bg-color)', padding: 16, borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{c.auteur.nomAffiche}</strong> <span>{formatDate(c.createdAt)}</span>
+                    </div>
+                    <div style={{ fontSize: 14 }}>{c.contenu}</div>
                   </div>
-                  <div style={{ fontSize: 14 }}>{c.contenu}</div>
-                </div>
-              ))}
-              {dossier.commentaires.length === 0 && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Aucun commentaire.</span>}
-            </div>
+                ))}
+                {(!dossier.commentaires || dossier.commentaires.length === 0) && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Aucun commentaire.</span>}
+              </div>
 
-            {capabilities.canCommentInternal && (
               <form action={addComment} style={{ display: 'flex', gap: 12 }}>
                 <input type="text" name="content" className="form-control" placeholder="Ajouter une note interne..." required style={{ flex: 1 }} />
                 <button type="submit" className="btn btn-outline">Envoyer</button>
               </form>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Colonne Latérale */}

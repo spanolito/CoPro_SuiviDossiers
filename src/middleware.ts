@@ -2,28 +2,39 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
+function addSecurityHeaders(response: NextResponse) {
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  return response
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Public paths
-  if (
+  // 1. Allowlist stricte pour les accès anonymes
+  const isPublic = 
     path === '/login' ||
     path === '/register' ||
+    path === '/api/auth/login' ||
+    path === '/api/auth/register' ||
+    path === '/api/auth/logout' ||
     path.startsWith('/_next') ||
-    path.startsWith('/api/auth') ||
     path === '/favicon.ico'
-  ) {
-    return NextResponse.next()
+
+  if (isPublic) {
+    return addSecurityHeaders(NextResponse.next())
   }
 
   const token = request.cookies.get('auth_token')?.value
 
-  // Protect all other routes
+  // 2. Protection par défaut
   if (!token) {
     if (path.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return addSecurityHeaders(NextResponse.json({ error: 'Non authentifié' }, { status: 401 }))
     }
-    return NextResponse.redirect(new URL('/login', request.url))
+    return addSecurityHeaders(NextResponse.redirect(new URL('/login', request.url)))
   }
 
   // Verify token
@@ -31,12 +42,11 @@ export async function middleware(request: NextRequest) {
 
   if (!payload) {
     if (path.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+      return addSecurityHeaders(NextResponse.json({ error: 'Session invalide' }, { status: 401 }))
     }
     const response = NextResponse.redirect(new URL('/login', request.url))
-    // Clear invalid cookie
     response.cookies.delete('auth_token')
-    return response
+    return addSecurityHeaders(response)
   }
 
   // Add user info to headers for API routes
@@ -45,15 +55,14 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-user-id', payload.id as string)
     requestHeaders.set('x-user-role', payload.role as string)
     
-    return NextResponse.next({
+    return addSecurityHeaders(NextResponse.next({
       request: {
         headers: requestHeaders,
       },
-    })
+    }))
   }
 
-  // Allow next for verified users
-  return NextResponse.next()
+  return addSecurityHeaders(NextResponse.next())
 }
 
 export const config = {

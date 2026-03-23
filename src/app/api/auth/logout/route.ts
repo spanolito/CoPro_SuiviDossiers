@@ -10,6 +10,7 @@ export async function POST() {
     httpOnly: true,
     path: '/',
     expires: new Date(0),
+    sameSite: 'lax',
   })
 
   return response

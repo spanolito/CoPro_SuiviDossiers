@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       path: '/',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24,
+      sameSite: 'lax',
     })
 
     // Update last login
