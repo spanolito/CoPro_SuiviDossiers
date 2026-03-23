@@ -12,6 +12,16 @@ export default async function EditDossierPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+
+  const { cookies } = await import('next/headers')
+  const { verifyToken } = await import('@/lib/auth')
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  const payload = token ? await verifyToken(token) : null
+
+  if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+    redirect(`/dossiers/${id}`)
+  }
   const dossier = await prisma.dossier.findUnique({ where: { id } })
   if (!dossier) notFound()
 

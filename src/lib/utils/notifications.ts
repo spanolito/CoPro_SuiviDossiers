@@ -13,7 +13,7 @@ export async function notifyAdminNewUser(user: { nomAffiche: string; email: stri
   try {
     await sendEmail({
       to: adminEmail,
-      subject: 'Nouvelle demande d\'accès - Conseil Syndical - L\'Ambassadeur',
+      subject: 'Nouvelle demande d\'accès - Copropriété - L\'Ambassadeur',
       template: 'user-access-request',
       data: {
         name: user.nomAffiche,
@@ -64,7 +64,7 @@ export async function notifyUserRoleChange(
   try {
     await sendEmail({
       to: recipients,
-      subject: 'Mise à jour de votre compte - Conseil Syndical - L\'Ambassadeur',
+      subject: 'Mise à jour de votre compte - Copropriété - L\'Ambassadeur',
       template: 'user-status-changed',
       data: {
         name: user.nomAffiche,

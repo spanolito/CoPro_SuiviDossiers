@@ -31,16 +31,16 @@ export default function Sidebar() {
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.logo}>
           <Building className={styles.navItemIcon} />
-          CoPro Suivi
+          Copropriété - L'Ambassadeur
         </div>
         <nav className={styles.nav}>
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
             return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
+              <Link
+                key={item.href}
+                href={item.href}
                 className={`${styles.navItem} ${isActive ? styles.active : ''}`}
                 onClick={closeSidebar}
               >

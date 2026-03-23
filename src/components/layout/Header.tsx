@@ -26,8 +26,8 @@ export default function Header({ userName = 'Utilisateur', userRole = 'Membre du
   const initials = userName.substring(0, 2).toUpperCase()
 
   // Find exact match or falls back to generic fallback
-  const title = titleMap[pathname] || 
-                (pathname.startsWith('/dossiers/') ? 'Détail du dossier' : 'Tableau de bord')
+  const title = titleMap[pathname] ||
+    (pathname.startsWith('/dossiers/') ? 'Détail du dossier' : 'Tableau de bord')
 
   return (
     <header className={styles.header}>
@@ -42,7 +42,7 @@ export default function Header({ userName = 'Utilisateur', userRole = 'Membre du
           <Search size={18} color="var(--text-secondary)" />
           <input type="text" placeholder="Rechercher un dossier..." className={styles.searchInput} />
         </div>
-        
+
         <NotificationBell />
 
         <div className={styles.userProfile}>

@@ -33,17 +33,6 @@ L'application est maintenant disponible sur [http://localhost:3000](http://local
 
 ---
 
-## 🔐 Identifiants de Démonstration
-
-*   **Administrateur**
-    *   Email : `admin@copro.com`
-    *   Mot de passe : `password123`
-*   **Conseil Syndical**
-    *   Email : `conseil@copro.com`
-    *   Mot de passe : `password123`
-
----
-
 ## 📦 Déploiement
 
 Cette application peut être déployée très facilement sur des plateformes comme Vercel, Railway ou un VPS classique (avec Docker ou PM2).

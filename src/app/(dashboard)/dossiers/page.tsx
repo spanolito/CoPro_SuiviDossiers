@@ -3,6 +3,8 @@ import styles from './dossiers.module.css'
 import Link from 'next/link'
 import { Plus, ArrowRight } from 'lucide-react'
 import DossierFilters from '@/components/dossiers/DossierFilters'
+import { cookies } from 'next/headers'
+import { verifyToken } from '@/lib/auth'
 
 export default async function DossiersListPage({
   searchParams,
@@ -11,6 +13,11 @@ export default async function DossiersListPage({
 }) {
   const { q, status, priority, archived_status } = await searchParams
   const activeFilter = archived_status || 'active'
+
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  const payload = token ? await verifyToken(token) : null
+  const isReadOnly = payload?.role === 'COPROPRIETAIRE_LECTURE'
 
   const whereClause: any = {}
   if (q) {
@@ -94,10 +101,12 @@ export default async function DossiersListPage({
           <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>Répertoire des dossiers</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: '4px' }}>Gérez et suivez todos los dossiers de la copropriété</p>
         </div>
-        <Link href="/dossiers/new" className="btn btn-primary" style={{ padding: '10px 18px', boxShadow: 'var(--shadow-sm)' }}>
-          <Plus size={18} />
-          Nouveau Dossier
-        </Link>
+        {!isReadOnly && (
+          <Link href="/dossiers/new" className="btn btn-primary" style={{ padding: '10px 18px', boxShadow: 'var(--shadow-sm)' }}>
+            <Plus size={18} />
+            Nouveau Dossier
+          </Link>
+        )}
       </div>
 
       <DossierFilters 

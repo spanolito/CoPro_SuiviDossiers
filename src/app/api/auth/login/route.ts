@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       `L'utilisateur ${user.nomAffiche} s'est connecté.`,
       'LOG_SYSTEME' as any
     )
-    
+
 
     return response
   } catch (error) {

@@ -79,7 +79,7 @@ export default async function DashboardPage() {
       const priorityOrder: Record<'CRITIQUE' | 'HAUTE' | 'NORMALE' | 'FAIBLE', number> = { CRITIQUE: 0, HAUTE: 1, NORMALE: 2, FAIBLE: 3 }
       const orderA = priorityOrder[a.computedPriority as keyof typeof priorityOrder]
       const orderB = priorityOrder[b.computedPriority as keyof typeof priorityOrder]
-      
+
       if (orderA !== orderB) {
         return orderA - orderB
       }
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
               </div>
               <span className="badge badge-danger" style={{ fontSize: 11 }}>{prioritizedDossiers.length} items</span>
             </div>
-            
+
             <div style={{ overflowX: 'auto' }}>
               <table className={styles.widgetTable}>
                 <thead>
@@ -233,9 +233,9 @@ export default async function DashboardPage() {
                 <EmptyState message="Aucune activité récente." />
               ) : activityLogs.map((log: any) => (
                 <div key={log.id} className={styles.timelineItem}>
-                  <div className={styles.timelineDot} style={{ 
-                    backgroundColor: log.resume?.includes('détecté') || log.resume?.includes('cree') ? 'var(--info)' : 
-                                    log.resume?.includes('bloqué') ? 'var(--danger-text)' : 'var(--primary)' 
+                  <div className={styles.timelineDot} style={{
+                    backgroundColor: log.resume?.includes('détecté') || log.resume?.includes('cree') ? 'var(--info)' :
+                      log.resume?.includes('bloqué') ? 'var(--danger-text)' : 'var(--primary)'
                   }}></div>
                   <div className={styles.timelineContent}>
                     <span className={styles.timelineText}>{log.resume}</span>

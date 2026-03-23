@@ -20,6 +20,7 @@ export default async function DossierDetailPage({
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
   const isAdmin = payload?.role === 'Admin'
+  const isReadOnly = payload?.role === 'COPROPRIETAIRE_LECTURE'
 
   const dossier = await prisma.dossier.findUnique({
     where: { id },
@@ -150,24 +151,28 @@ export default async function DossierDetailPage({
             <span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>{getStatusLabel(dossier.statut)}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Link href={`/dossiers/${id}/edit`} className="btn btn-outline"><Edit size={16} /> Éditer</Link>
-          <DossierActions
-            dossierId={id}
-            isAdmin={isAdmin}
-            isArchived={dossier.archived}
-            counts={{ etapes: dossier.etapes.length, commentaires: dossier.commentaires.length, documents: dossier.documents.length }}
-          />
-        </div>
+        {!isReadOnly && (
+          <div style={{ display: 'flex', gap: 12 }}>
+            <Link href={`/dossiers/${id}/edit`} className="btn btn-outline"><Edit size={16} /> Éditer</Link>
+            <DossierActions
+              dossierId={id}
+              isAdmin={isAdmin}
+              isArchived={dossier.archived}
+              counts={{ etapes: dossier.etapes.length, commentaires: dossier.commentaires.length, documents: dossier.documents.length }}
+            />
+          </div>
+        )}
       </div>
 
-      <DossierStatusControls
-        dossierId={id}
-        currentStatus={dossier.statut}
-        isAdmin={isAdmin}
-        hasResponsables={!!dossier.responsableCSId}
-        finalDecision={dossier.finalDecision}
-      />
+      {!isReadOnly && (
+        <DossierStatusControls
+          dossierId={id}
+          currentStatus={dossier.statut}
+          isAdmin={isAdmin}
+          hasResponsables={!!dossier.responsableCSId}
+          finalDecision={dossier.finalDecision}
+        />
+      )}
 
       <div className={styles.container}>
         <div className={styles.mainColumn}>
@@ -248,19 +253,21 @@ export default async function DossierDetailPage({
               </div>
             )}
 
-            <form action={addEtape} style={{ marginTop: 24, padding: 16, background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
-              <h3 style={{ fontSize: 14, marginBottom: 12 }}>Ajouter une étape</h3>
-              <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                <input type="text" name="title" placeholder="Titre (ex: Devis reçu)" className="form-control" style={{ flex: 1 }} required />
-                <select name="status" className="form-control" required>
-                  <option value="TERMINEE">Terminée</option>
-                  <option value="EN_ATTENTE">En attente</option>
-                  <option value="BLOQUEE">Bloquée</option>
-                  <option value="A_FAIRE">À faire</option>
-                </select>
-              </div>
-              <button type="submit" className="btn btn-primary">Ajouter</button>
-            </form>
+            {!isReadOnly && (
+              <form action={addEtape} style={{ marginTop: 24, padding: 16, background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
+                <h3 style={{ fontSize: 14, marginBottom: 12 }}>Ajouter une étape</h3>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  <input type="text" name="title" placeholder="Titre (ex: Devis reçu)" className="form-control" style={{ flex: 1 }} required />
+                  <select name="status" className="form-control" required>
+                    <option value="TERMINEE">Terminée</option>
+                    <option value="EN_ATTENTE">En attente</option>
+                    <option value="BLOQUEE">Bloquée</option>
+                    <option value="A_FAIRE">À faire</option>
+                  </select>
+                </div>
+                <button type="submit" className="btn btn-primary">Ajouter</button>
+              </form>
+            )}
           </div>
 
           {/* Commentaires */}
@@ -278,10 +285,12 @@ export default async function DossierDetailPage({
               {dossier.commentaires.length === 0 && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Aucun commentaire.</span>}
             </div>
 
-            <form action={addComment} style={{ display: 'flex', gap: 12 }}>
-              <input type="text" name="content" className="form-control" placeholder="Ajouter une note interne..." required style={{ flex: 1 }} />
-              <button type="submit" className="btn btn-outline">Envoyer</button>
-            </form>
+            {!isReadOnly && (
+              <form action={addComment} style={{ display: 'flex', gap: 12 }}>
+                <input type="text" name="content" className="form-control" placeholder="Ajouter une note interne..." required style={{ flex: 1 }} />
+                <button type="submit" className="btn btn-outline">Envoyer</button>
+              </form>
+            )}
           </div>
         </div>
 
@@ -301,12 +310,14 @@ export default async function DossierDetailPage({
               )}
             </div>
 
-            <form action={uploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-color)', alignItems: 'center' }}>
-              <UploadCloud size={24} color="var(--text-secondary)" />
-              <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document" required style={{ width: '100%', fontSize: 13 }} />
-              <input type="text" name="fileName" className="form-control" placeholder="Nom du document" required style={{ width: '100%', fontSize: 13 }} />
-              <button type="submit" className="btn btn-outline" style={{ width: '100%', fontSize: 13 }}>Ajouter le lien</button>
-            </form>
+            {!isReadOnly && (
+              <form action={uploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-color)', alignItems: 'center' }}>
+                <UploadCloud size={24} color="var(--text-secondary)" />
+                <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document" required style={{ width: '100%', fontSize: 13 }} />
+                <input type="text" name="fileName" className="form-control" placeholder="Nom du document" required style={{ width: '100%', fontSize: 13 }} />
+                <button type="submit" className="btn btn-outline" style={{ width: '100%', fontSize: 13 }}>Ajouter le lien</button>
+              </form>
+            )}
           </div>
 
           <div className="card">
