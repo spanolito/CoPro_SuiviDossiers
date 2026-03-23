@@ -19,7 +19,14 @@ export default async function DossiersListPage({
       { reference: { contains: q, mode: 'insensitive' } },
     ]
   }
-  if (status) whereClause.statut = status
+  if (status) {
+    const statusArray = status.split(',')
+    if (statusArray.length > 1) {
+      whereClause.statut = { in: statusArray }
+    } else {
+      whereClause.statut = status
+    }
+  }
   if (priority) whereClause.priorite = priority
 
   if (activeFilter === 'archived') {

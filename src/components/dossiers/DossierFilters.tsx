@@ -102,6 +102,8 @@ export default function DossierFilters({
           }}
         >
           <option value="">Tous les statuts</option>
+          <option value="ENREGISTRE,AFFECTE">En attente</option>
+          <option value="EN_COURS,A_VALIDER">En cours</option>
           <option value="ENREGISTRE">Enregistré</option>
           <option value="AFFECTE">Affecté</option>
           <option value="EN_COURS">En Cours</option>

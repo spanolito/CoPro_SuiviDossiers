@@ -129,14 +129,14 @@ export default async function DashboardPage() {
           </div>
           <span className={styles.metricValue} style={{ color: 'var(--urgent-text)' }}>{countUrgent}</span>
         </Link>
-        <Link href="/dossiers?status=ENREGISTRE" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
+        <Link href="/dossiers?status=ENREGISTRE,AFFECTE" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>En attente</span>
             <Clock size={18} color="var(--warning)" />
           </div>
           <span className={styles.metricValue}>{countEnAttente}</span>
         </Link>
-        <Link href="/dossiers?status=EN_COURS" className={styles.metricCard} style={{ borderTopColor: 'var(--primary)' }}>
+        <Link href="/dossiers?status=EN_COURS,A_VALIDER" className={styles.metricCard} style={{ borderTopColor: 'var(--primary)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>En cours</span>
             <Clock size={18} color="var(--primary)" />
