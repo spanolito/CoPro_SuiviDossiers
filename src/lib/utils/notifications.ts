@@ -18,7 +18,7 @@ export async function notifyAdminNewUser(user: { nomAffiche: string; email: stri
       data: {
         name: user.nomAffiche,
         email: user.email,
-        date: new Date().toLocaleString('fr-FR')
+        date: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Zurich' })
       }
     })
   } catch (error) {
@@ -71,7 +71,7 @@ export async function notifyUserRoleChange(
         email: user.email || '-',
         oldValue: oldValue,
         newValue: newValue,
-        date: new Date().toLocaleString('fr-FR')
+        date: new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Zurich' })
       }
     })
   } catch (error) {
