@@ -107,7 +107,7 @@
   justify-content: flex-end;
 }
 
-@container (max-width: 950px) {
+@container (max-width: 1150px) {
   .tableContainer {
     border: none;
     background: transparent;
