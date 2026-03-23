@@ -30,7 +30,7 @@ export default function Sidebar() {
       {isOpen && <div className={styles.backdrop} onClick={closeSidebar} />}
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.logo}>
-          <Building className={styles.navItemIcon} />
+          <Building className={styles.logoIcon} />
           Copropriété - L'Ambassadeur
         </div>
         <nav className={styles.nav}>

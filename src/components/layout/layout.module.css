@@ -21,6 +21,12 @@
   gap: 12px;
 }
 
+.logoIcon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 .nav {
   padding: 24px 16px;
   flex: 1;
