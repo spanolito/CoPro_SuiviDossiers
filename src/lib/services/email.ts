@@ -52,19 +52,26 @@ function buildHtml({ body, template, data }: Pick<EmailPayload, 'body' | 'templa
 
 export async function sendEmail({ to, subject, body, template, data }: EmailPayload) {
   const recipients = Array.isArray(to) ? to : [to]
-  const from = process.env.SMTP_FROM || 'CoPro Suivi <onboarding@resend.dev>'
+  const from = process.env.SMTP_FROM || 'CoPro <noreply@copro-ambassadeur.fr>'
 
   if (!process.env.RESEND_API_KEY) {
     console.warn('[EMAIL SERVICE] RESEND_API_KEY non configurée.')
     console.log('================ [EMAIL OUTBOUND MOCK] ================')
     console.log('To:', recipients.join(', '))
     console.log('Subject:', subject)
+    console.log('From:', from)
     console.log('Content:\n', body || JSON.stringify(data, null, 2))
     console.log('======================================================')
     return { id: 'mock-id' }
   }
 
   const html = buildHtml({ body, template, data })
+
+  console.log('[EMAIL SERVICE] Intent and destinations:', { 
+    from, 
+    to: recipients, 
+    subject 
+  })
 
   try {
     const { data: result, error } = await resend.emails.send({
@@ -75,10 +82,11 @@ export async function sendEmail({ to, subject, body, template, data }: EmailPayl
     })
 
     if (error) {
-      console.error('[EMAIL SERVICE] Resend error:', error)
+      console.error('[EMAIL SERVICE] Resend error response received:', error)
       throw new Error(error.message)
     }
 
+    console.log('[EMAIL SERVICE] Resend success response:', result)
     return result
   } catch (error) {
     console.error('[EMAIL SERVICE] Failed to send email:', error)
