@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  if (payload?.role !== 'Admin') {
+  if (payload?.role !== 'admin') {
     return (
       <div style={{ 
         display: 'flex', 

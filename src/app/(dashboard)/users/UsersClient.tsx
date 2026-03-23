@@ -28,7 +28,7 @@ const formatRoleName = (role: string) => {
 
 export default function UsersClient({ users, currentAdminId, currentUserRole }: { users: User[]; currentAdminId: string; currentUserRole: string }) {
   const router = useRouter()
-  const isReadOnly = currentUserRole === 'Conseil syndical'
+  const isReadOnly = currentUserRole === 'cs'
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [alert, setAlert] = useState<Alert | null>(null)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)

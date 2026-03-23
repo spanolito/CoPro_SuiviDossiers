@@ -94,7 +94,7 @@ export async function changeMyEmail(currentPassword: string, newEmail: string): 
 export async function adminResetPassword(targetUserId: string, temporaryPassword: string): Promise<Result> {
   const payload = await getAuthUser()
 
-  if (payload.role !== 'Admin') {
+  if (payload.role !== 'admin') {
     return { error: 'Seul le Président du CS peut réinitialiser les mots de passe.' }
   }
 

@@ -18,8 +18,8 @@ export default async function DashboardLayout({
   let rawRole = (payload?.role as string) || 'Read-only'
   
   let userRole = 'Copropriétaire'
-  if (rawRole === 'Admin') userRole = 'Président du CS'
-  else if (rawRole === 'Conseil syndical') userRole = 'Membre du CS'
+  if (rawRole === 'admin') userRole = 'Président du CS'
+  else if (rawRole === 'cs') userRole = 'Membre du CS'
 
   return (
     <SidebarProvider>

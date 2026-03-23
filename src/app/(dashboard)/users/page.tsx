@@ -10,7 +10,7 @@ export default async function UsersPage() {
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  if (payload?.role !== 'Admin' && payload?.role !== 'Conseil syndical') {
+  if (payload?.role !== 'admin' && payload?.role !== 'cs') {
     redirect('/')
   }
 

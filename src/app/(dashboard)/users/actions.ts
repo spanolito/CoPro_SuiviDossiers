@@ -27,7 +27,7 @@ async function checkAdmin() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
-  if (payload?.role !== 'Admin') {
+  if (payload?.role !== 'admin') {
     throw new Error('Unauthorized')
   }
   return payload
