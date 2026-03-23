@@ -81,3 +81,92 @@
   padding: 6px 12px;
   font-size: 13px;
 }
+
+/* Helper classes grouped for refactoring from inline styles */
+.linkCell {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  text-decoration: none;
+  height: 100%;
+  color: var(--text-primary);
+}
+
+.linkCellColumn {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.linkCellGap {
+  gap: 4px;
+}
+
+.linkCellEnd {
+  justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+  .tableContainer {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  
+  .table, .table thead, .table tbody, .table tr, .table td {
+    display: block;
+    width: 100%;
+  }
+  
+  .table thead {
+    display: none;
+  }
+  
+  .table tbody tr {
+    background: var(--panel-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 16px;
+    padding: 12px; /* reduced for card view */
+    border: 1px solid var(--border-color);
+  }
+  
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 !important; /* Reset padding for link full-box clicks on mobile */
+  }
+  
+  .table td:last-child {
+    border-bottom: none;
+  }
+  
+  .table td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding-left: 16px; /* Align with layout padding */
+  }
+  
+  /* LinkCell overrides inside card */
+  .linkCell {
+    padding: 12px 16px !important; /* Limit size in card views */
+    width: 100%;
+    justify-content: flex-end; /* Push content to right on mobile card */
+  }
+  
+  .linkCellColumn {
+    align-items: flex-end; /* Stack to right too */
+  }
+  
+  .linkCellEnd {
+    justify-content: flex-end;
+  }
+  
+  .actionsCell {
+    padding-top: 8px !important;
+  }
+}
