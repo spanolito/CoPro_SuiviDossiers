@@ -149,7 +149,7 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                     </div>
                   </div>
                 </td>
-                <td>
+                <td data-label="Statut">
                   <select
                     value={user.status}
                     onChange={(event) => handleStatusChange(user, event.target.value)}
@@ -162,7 +162,7 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                     ))}
                   </select>
                 </td>
-                <td>
+                <td data-label="Rôle">
                   <select
                     value={user.role}
                     onChange={(event) => handleRoleChange(user, event.target.value)}
@@ -175,10 +175,10 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                     ))}
                   </select>
                 </td>
-                <td style={{ color: 'var(--text-secondary)' }}>
+                <td data-label="Création" style={{ color: 'var(--text-secondary)' }}>
                   {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                 </td>
-                <td style={{ display: 'flex', gap: 8 }}>
+                <td data-label="Actions" className={styles.actionsCell}>
                   {!isReadOnly && (
                     <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
                       Modifier
