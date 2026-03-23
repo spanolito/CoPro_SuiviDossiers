@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const rawRole = (payload.role as string) || 'COPROPRIETAIRE_LECTURE'
+  const rawRole = (payload.role as string) || 'coproprietaire'
   const isAdmin = rawRole === 'admin' || rawRole === 'PRESIDENT_CS'
 
   if (!isAdmin) {

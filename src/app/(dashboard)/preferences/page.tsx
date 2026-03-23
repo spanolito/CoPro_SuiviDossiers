@@ -18,7 +18,7 @@ export default async function SettingsPage() {
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      <SettingsClient user={{ ...payload, ...(dbUser || {}) }} copro={copro} />
+      <SettingsClient user={{ ...(dbUser || {}), ...payload }} copro={copro} />
     </div>
   )
 }

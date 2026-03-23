@@ -23,13 +23,13 @@ const ALL_TABS = [
 ]
 
 export default function SettingsClient({ user, copro }: { user: any, copro: any }) {
-  const visibleTabs = ALL_TABS.filter(tab => hasPermission(user, tab.permission as any))
+  const visibleTabs = ALL_TABS.filter(tab => hasPermission(user.role, tab.permission as any))
   const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id || 'general')
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
-  const canEditApp = hasPermission(user, 'settings.update.app')
-  const canEditWorkflow = hasPermission(user, 'workflow.update')
+  const canEditApp = hasPermission(user.role, 'settings.update.app')
+  const canEditWorkflow = hasPermission(user.role, 'workflow.update')
 
   // 1. Général States
   const [general, setGeneral] = useState({

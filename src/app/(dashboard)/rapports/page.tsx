@@ -8,7 +8,7 @@ export default async function RapportsPage() {
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  const rawRole = (payload?.role as string) || 'COPROPRIETAIRE_LECTURE'
+  const rawRole = (payload?.role as string) || 'coproprietaire'
   const isAdmin = rawRole === 'admin' || rawRole === 'PRESIDENT_CS'
 
   if (!isAdmin) {
