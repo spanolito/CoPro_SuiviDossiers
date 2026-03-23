@@ -63,6 +63,10 @@ export default async function DossierDetailPage({
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
 
+      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+        throw new Error('Action non autorisée : accès en lecture seule.')
+      }
+
       await prisma.dossierEtape.create({
         data: {
           dossierId: id,
@@ -89,6 +93,10 @@ export default async function DossierDetailPage({
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
 
+      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+        throw new Error('Action non autorisée : accès en lecture seule.')
+      }
+
       if (payload?.id) {
         await prisma.dossierCommentaire.create({
           data: { contenu, auteurUserId: payload.id as string, dossierId: id }
@@ -110,6 +118,10 @@ export default async function DossierDetailPage({
       const cookieStore = await cookies()
       const token = cookieStore.get('auth_token')?.value
       const payload = token ? await verifyToken(token) : null
+
+      if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+        throw new Error('Action non autorisée : accès en lecture seule.')
+      }
 
       const copro = await prisma.copropriete.findFirst()
       await prisma.document.create({

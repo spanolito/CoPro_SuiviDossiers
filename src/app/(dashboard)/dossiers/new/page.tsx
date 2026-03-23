@@ -7,6 +7,14 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 
 export default async function NewDossierPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('auth_token')?.value
+  const payload = token ? await verifyToken(token) : null
+
+  if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+    redirect('/dossiers')
+  }
+
   const users = await prisma.utilisateur.findMany({ where: { role: { in: ['PRESIDENT_CS', 'MEMBRE_CS'] }, isActive: true }, select: { id: true, nomAffiche: true } })
   const intervenants = await prisma.intervenant.findMany({ where: { actif: true }, orderBy: { nom: 'asc' } })
   const zonesCommunes = await prisma.zoneCommune.findMany({ orderBy: { nom: 'asc' } })
@@ -26,6 +34,10 @@ export default async function NewDossierPage() {
     const cookieStore = await cookies()
     const token = cookieStore.get('auth_token')?.value
     const payload = token ? await verifyToken(token) : null
+
+    if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+      throw new Error('Création non autorisée : accès en lecture seule.')
+    }
 
     const copro = await prisma.copropriete.findFirst()
     if (!copro) throw new Error('Copropriété non trouvée')

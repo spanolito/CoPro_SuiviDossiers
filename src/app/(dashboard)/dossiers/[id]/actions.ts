@@ -14,6 +14,11 @@ async function getCurrentUser() {
   if (!token) throw new Error('Non authentifié')
   const payload = await verifyToken(token)
   if (!payload) throw new Error('Token invalide')
+
+  if (payload.role === 'COPROPRIETAIRE_LECTURE') {
+    throw new Error('Action non autorisée : accès en lecture seule.')
+  }
+
   return payload
 }
 
