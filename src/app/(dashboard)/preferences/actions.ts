@@ -29,7 +29,18 @@ export async function saveGeneralSettings(data: {
 }
 
 // 2. Mon Compte Settings
-export async function saveAccountSettings(data: { nomAffiche: string, email: string }) {
+export async function saveAccountSettings(data: { 
+  nomAffiche: string
+  email: string 
+  telephone?: string
+  mobilePhone?: string
+  addressLine1?: string
+  postalCode?: string
+  city?: string
+  canton?: string
+  country?: string
+  profileImageUrl?: string
+}) {
   try {
     const payload = await requirePermission('settings.update.self')
     
@@ -46,7 +57,15 @@ export async function saveAccountSettings(data: { nomAffiche: string, email: str
       where: { id: payload!.id as string },
       data: { 
         nomAffiche: data.nomAffiche,
-        email: data.email
+        email: data.email,
+        telephone: data.telephone || null,
+        mobilePhone: data.mobilePhone || null,
+        addressLine1: data.addressLine1 || null,
+        postalCode: data.postalCode || null,
+        city: data.city || null,
+        canton: data.canton || null,
+        country: data.country || null,
+        profileImageUrl: data.profileImageUrl || null,
       }
     })
     return { success: true, message: 'Informations du compte mises à jour.' }

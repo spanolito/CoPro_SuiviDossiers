@@ -40,7 +40,18 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
   })
 
   // 2. Mon Compte States
-  const [account, setAccount] = useState({ nomAffiche: user.nomAffiche || '', email: user.email || '' })
+  const [account, setAccount] = useState({ 
+    nomAffiche: user.nomAffiche || '', 
+    email: user.email || '',
+    telephone: user.telephone || '',
+    mobilePhone: user.mobilePhone || '',
+    addressLine1: user.addressLine1 || '',
+    postalCode: user.postalCode || '',
+    city: user.city || '',
+    canton: user.canton || '',
+    country: user.country || '',
+    profileImageUrl: user.profileImageUrl || ''
+  })
   const [pass, setPass] = useState({ current: '', newPass: '', confirm: '' })
   const [showPassModal, setShowPassModal] = useState(false)
 
@@ -186,22 +197,68 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
             <h3>Mon compte</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>Informations publiques et identifiants.</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-              <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 18 }}>
-                {account.nomAffiche?.substring(0, 2).toUpperCase()}
+              <div style={{ width: 50, height: 50, borderRadius: '50%', background: account.profileImageUrl ? 'transparent' : 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 18, overflow: 'hidden' }}>
+                {account.profileImageUrl ? (
+                  <img src={account.profileImageUrl} alt="Profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  account.nomAffiche?.substring(0, 2).toUpperCase()
+                )}
               </div>
               <div>
                 <span className="badge badge-normal" style={{ fontSize: 11 }}>{formatRole(user.role)}</span>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>{user.email}</p>
               </div>
             </div>
-            <div style={{ maxWidth: 400 }}>
-              <div style={formGroupStyle}>
-                <label style={labelStyle}>Nom complet</label>
-                <input type="text" value={account.nomAffiche} onChange={e => setAccount({ ...account, nomAffiche: e.target.value })} className="form-control" />
+            <div style={{ maxWidth: 600 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Nom complet</label>
+                  <input type="text" value={account.nomAffiche} onChange={e => setAccount({ ...account, nomAffiche: e.target.value })} className="form-control" />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Adresse e-mail</label>
+                  <input type="email" value={account.email} onChange={e => setAccount({ ...account, email: e.target.value })} className="form-control" disabled />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Téléphone Fixe</label>
+                  <input type="text" value={account.telephone} onChange={e => setAccount({ ...account, telephone: e.target.value })} className="form-control" />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Téléphone Mobile</label>
+                  <input type="text" value={account.mobilePhone} onChange={e => setAccount({ ...account, mobilePhone: e.target.value })} className="form-control" />
+                </div>
               </div>
+
+              <h4 style={{ marginTop: 20, marginBottom: 12, fontSize: 14 }}>Coordonnées Postal</h4>
               <div style={formGroupStyle}>
-                <label style={labelStyle}>Adresse e-mail</label>
-                <input type="email" value={account.email} onChange={e => setAccount({ ...account, email: e.target.value })} className="form-control" />
+                <label style={labelStyle}>Adresse</label>
+                <input type="text" value={account.addressLine1} onChange={e => setAccount({ ...account, addressLine1: e.target.value })} className="form-control" placeholder="Rue, de la paix..." />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16 }}>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Code Postal</label>
+                  <input type="text" value={account.postalCode} onChange={e => setAccount({ ...account, postalCode: e.target.value })} className="form-control" />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Ville</label>
+                  <input type="text" value={account.city} onChange={e => setAccount({ ...account, city: e.target.value })} className="form-control" />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Canton</label>
+                  <input type="text" value={account.canton} onChange={e => setAccount({ ...account, canton: e.target.value })} className="form-control" />
+                </div>
+                <div style={formGroupStyle}>
+                  <label style={labelStyle}>Pays</label>
+                  <input type="text" value={account.country} onChange={e => setAccount({ ...account, country: e.target.value })} className="form-control" />
+                </div>
+              </div>
+
+              {/* Photo de Profil URL */}
+              <div style={{ ...formGroupStyle, marginTop: 16 }}>
+                <label style={labelStyle}>URL de la Photo de profil</label>
+                <input type="text" value={account.profileImageUrl} onChange={e => setAccount({ ...account, profileImageUrl: e.target.value })} className="form-control" placeholder="https://..." />
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <button disabled={loading} onClick={handleSaveAccount} className="btn btn-primary">Enregistrer</button>

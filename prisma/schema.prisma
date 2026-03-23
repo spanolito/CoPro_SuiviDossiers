@@ -360,7 +360,14 @@ model Utilisateur {
   nomAffiche    String
   prenom        String?
   nom           String?
-  telephone     String?
+  telephone       String?
+  mobilePhone     String?
+  addressLine1    String?
+  postalCode      String?
+  city            String?
+  canton          String?
+  country         String?
+  profileImageUrl String?
   role          RoleUtilisateur
   status        StatutUtilisateur @default(PENDING)
   isActive      Boolean           @default(true)
@@ -448,6 +455,8 @@ model Intervenant {
   email            String?
   telephone        String?
   adresse          String?
+  siteWeb          String?
+  contactRole      String?
   contactPrincipal String?
   notes            String?
   actif            Boolean         @default(true)
