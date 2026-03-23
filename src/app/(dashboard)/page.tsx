@@ -175,7 +175,7 @@ export default async function DashboardPage() {
               <span className="badge badge-danger" style={{ fontSize: 11 }}>{prioritizedDossiers.length} items</span>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
+            <div>
               <table className={styles.widgetTable}>
                 <thead>
                   <tr>
@@ -191,28 +191,27 @@ export default async function DashboardPage() {
                     <tr><td colSpan={5} style={{ padding: 0 }}><EmptyState message="Aucune action prioritized requise." /></td></tr>
                   ) : prioritizedDossiers.map((d: any) => (
                     <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
-                      <td>
+                      <td data-label="Dossier">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
                           <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{d.reference}</span>
                         </div>
                       </td>
-                      <td>
+                      <td data-label="Priorité">
                         <span className={`badge ${d.computedPriority === 'CRITIQUE' ? 'badge-urgent' : d.computedPriority === 'HAUTE' ? 'badge-high' : 'badge-normal'}`}>
                           {getPriorityLabel(d.computedPriority)}
                         </span>
                         {isOverdue(d) && <span className="badge badge-danger" style={{ marginLeft: 6, fontSize: 10 }}>En Retard</span>}
                       </td>
-                      <td>
+                      <td data-label="Statut">
                         <span className="badge badge-neutral" style={{ opacity: 0.85 }}>{getStatusLabel(d.statut)}</span>
                       </td>
-
-                      <td>
+                      <td data-label="Responsable">
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', maxWidth: '140px' }}>
                           {d.responsableCS?.nomAffiche || '-'}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Échéance">
                         {d.dateEcheance ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--danger-text)', fontSize: 12 }}>
                             <Calendar size={14} />

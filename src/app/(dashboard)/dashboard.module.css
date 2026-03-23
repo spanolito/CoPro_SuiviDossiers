@@ -118,6 +118,8 @@
   justify-content: space-between;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .assigneeItem:last-child {
@@ -173,4 +175,59 @@
 .timelineTime {
   font-size: 11px;
   color: var(--text-secondary);
+}
+@media (max-width: 600px) {
+  .metricsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .metricsRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .widgetTable, .widgetTable thead, .widgetTable tbody, .widgetTable tr, .widgetTable td {
+    display: block;
+    width: 100%;
+  }
+  
+  .widgetTable thead {
+    display: none;
+  }
+  
+  .widgetTable tbody tr {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--panel-bg);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .widgetTable tr:hover {
+    background-color: var(--panel-bg); /* Disable hover highlight on card layout */
+  }
+
+  .widgetTable td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .widgetTable td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  
+  .widgetTable td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
 }
