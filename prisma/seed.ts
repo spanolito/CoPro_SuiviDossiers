@@ -171,15 +171,37 @@ async function main() {
 
   // ─── 8. Intervenants ───
   const intervenantsData = [
-    { id: 'int-pichet', nom: 'PICHET IMMOBILIER SERVICES', type: 'SYNDIC' as const, sousType: 'Syndic principal' },
+    { id: 'int-pichet', nom: 'Pichet Immobilier', type: 'SYNDIC' as const, sousType: 'Syndic', adresse: '7 Avenue du Pré Félin, 74940 Annecy-le-Vieux', telephone: '0450332500', contactPrincipal: 'Aurélie Grillet', contactRole: 'MANAGER', notes: 'Syndic principal' },
+    { id: 'int-fg-plomberie', nom: 'FG Plomberie', type: 'PRESTATAIRE' as const, sousType: 'Plomberie', adresse: '278 Route des Alpes, 01280 Prévessin-Moëns', telephone: '0665543229', contactRole: 'TECHNICIAN', notes: 'Fuites et chauffage' },
+    { id: 'int-engie', nom: 'EngieSolutions', type: 'PRESTATAIRE' as const, sousType: 'Chauffage', telephone: '0969399993', contactRole: 'GENERAL', notes: 'Maintenance chauffage' },
+    { id: 'int-total-energies', nom: 'TotalEnergies', type: 'PRESTATAIRE' as const, sousType: 'Électricité', telephone: '0970806969', contactRole: 'GENERAL', notes: 'Fournisseur électricité' },
+    { id: 'int-proxreserve', nom: 'Proxreserve', type: 'PRESTATAIRE' as const, sousType: 'Chauffage', telephone: '0977422424', contactRole: 'TECHNICIAN', notes: 'Maintenance thermique' },
+    { id: 'int-schindler', nom: 'Schindler Savoie Léman', type: 'PRESTATAIRE' as const, sousType: 'Ascenseur', adresse: 'Viviers-du-Lac, 73420', telephone: '0479610450', contactRole: 'TECHNICIAN', notes: 'Maintenance ascenseur' },
+    { id: 'int-A2C', nom: 'A2C Controle', type: 'PRESTATAIRE' as const, sousType: 'Ascenseur', telephone: '0450281350', contactRole: 'TECHNICIAN', notes: 'Contrôle réglementaire' },
+    { id: 'int-altiscience', nom: 'Altiscience', type: 'PRESTATAIRE' as const, sousType: 'Toiture', contactRole: 'TECHNICIAN', notes: 'Recherche fuite toiture' },
+    { id: 'int-melanno', nom: 'Melanno Zinguerie', type: 'PRESTATAIRE' as const, sousType: 'Étanchéité', contactRole: 'TECHNICIAN', notes: 'Travaux toiture' },
+    { id: 'int-sapitec', nom: 'Sapitec', type: 'PRESTATAIRE' as const, sousType: 'Fuite', contactRole: 'TECHNICIAN', notes: 'Recherche de fuite' },
+    { id: 'int-mccgy', nom: 'MCCGY', type: 'PRESTATAIRE' as const, sousType: 'Toiture', contactRole: 'TECHNICIAN', notes: 'Remplacement tuiles' },
+    { id: 'int-socotec', nom: 'Socotec Immobilier Durable', type: 'PRESTATAIRE' as const, sousType: 'Diagnostic', adresse: 'Guyancourt, 78280', telephone: '0130124000', contactRole: 'GENERAL', notes: 'PPPT / DPE / DTG' },
+    { id: 'int-gcc', nom: 'GLOBAL CONSTRUCTION CLAIMS', type: 'PRESTATAIRE' as const, sousType: 'Expertise', contactRole: 'EXPERT', notes: 'Sinistres' },
+    { id: 'int-regie-eaux', nom: 'Régie des Eaux Gessiennes', type: 'PRESTATAIRE' as const, sousType: 'Eau', adresse: '200 rue Edouard Branly, 01280 Prévessin-Moëns', telephone: '0450991201', contactRole: 'GENERAL', notes: 'Eau' },
+    { id: 'int-com-com-gex', nom: 'Communauté de Communes du Pays de Gex', type: 'PRESTATAIRE' as const, sousType: 'Déchets', adresse: '135 rue de Genève, 01170 Gex', telephone: '0450426500', contactRole: 'GENERAL', notes: 'Services publics' },
+    { id: 'int-avipur', nom: 'Avipur', type: 'PRESTATAIRE' as const, sousType: 'Nuisibles', telephone: '0479521020', contactRole: 'TECHNICIAN', notes: 'Dératisation' },
+    { id: 'int-sicli', nom: 'Sicli - Chubb France', type: 'PRESTATAIRE' as const, sousType: 'Incendie', telephone: '0820201202', contactRole: 'TECHNICIAN', notes: 'Désenfumage' },
+    { id: 'int-leman-elec', nom: 'Leman Elec', type: 'PRESTATAIRE' as const, sousType: 'Électricité', contactRole: 'TECHNICIAN', notes: 'Dépannage' },
+    { id: 'int-e2s', nom: 'E2S', type: 'PRESTATAIRE' as const, sousType: 'Maintenance', contactRole: 'TECHNICIAN', notes: 'Maintenance' },
+    { id: 'int-2stp', nom: '2STP', type: 'PRESTATAIRE' as const, sousType: 'Accès', contactRole: 'TECHNICIAN', notes: 'Portes garage' },
+    { id: 'int-pichon', nom: 'ESPACES VERTS PICHON', type: 'PRESTATAIRE' as const, sousType: 'Espaces verts', contactRole: 'TECHNICIAN', notes: 'Entretien extérieur' },
+    { id: 'int-assurimo', nom: 'Assurimo', type: 'ASSURANCE' as const, sousType: 'Assurance', contactRole: 'GENERAL', notes: 'Assurance copro' },
+    { id: 'int-set-assurances', nom: 'Set Assurances', type: 'ASSURANCE' as const, sousType: 'Assurance', contactRole: 'GENERAL', notes: 'Assurance' },
+    { id: 'int-selarl-monnet', nom: 'Selarl Monnet-Héricault', type: 'AVOCAT' as const, sousType: 'Juridique', contactRole: 'GENERAL', notes: 'Recouvrement' },
+    { id: 'int-docsyndic', nom: 'Docsyndic', type: 'PRESTATAIRE' as const, sousType: 'Syndic outils', contactRole: 'GENERAL', notes: 'Gestion administrative' },
+    // Garder les anciens éléments référencés dans les dossiers
     { id: 'int-volfeu', nom: 'VOLFEU', type: 'PRESTATAIRE' as const, sousType: 'Sécurité / Caméras' },
-    { id: 'int-gcc', nom: 'GLOBAL CONSTRUCTION CLAIMS', type: 'PRESTATAIRE' as const, sousType: 'Travaux / Crépis' },
     { id: 'int-gex', nom: 'GEX MULTISERVICES', type: 'PRESTATAIRE' as const, sousType: 'Travaux + Espaces verts' },
-    { id: 'int-pichon', nom: 'ESPACES VERTS PICHON', type: 'PRESTATAIRE' as const, sousType: 'Espaces verts' },
     { id: 'int-walterre', nom: 'WALTERRE', type: 'EXPERT' as const, sousType: 'Audit chaufferie' },
-    { id: 'int-engie', nom: 'ENGIE', type: 'PRESTATAIRE' as const, sousType: 'Chauffage / Maintenance' },
     { id: 'int-chazelle', nom: 'Cabinet CHAZELLE / Me GEOFFRAY', type: 'AVOCAT' as const, sousType: 'Dossier FONCIA' },
-    { id: 'int-persea', nom: 'Cabinet PERSEA', type: 'AVOCAT' as const, sousType: 'Contentieux' },
+    { id: 'int-persea', nom: 'Cabinet PERSEA', type: 'AVOCAT' as const, sousType: 'Contentieux' }
   ]
   for (const i of intervenantsData) {
     await prisma.intervenant.upsert({
@@ -191,6 +213,11 @@ async function main() {
         nom: i.nom,
         type: i.type,
         sousType: i.sousType,
+        adresse: (i as any).adresse || null,
+        telephone: (i as any).telephone || null,
+        contactPrincipal: (i as any).contactPrincipal || null,
+        contactRole: (i as any).contactRole || null,
+        notes: (i as any).notes || null,
         actif: true,
       },
     })
