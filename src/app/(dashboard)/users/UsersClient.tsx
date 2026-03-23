@@ -4,6 +4,7 @@ import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateUserDetails, deleteUser, adminResetPassword } from './actions'
 import styles from './users.module.css'
+import { MoreVertical } from 'lucide-react'
 
 type User = { id: string; nomAffiche: string; email: string; status: string; role: string; createdAt: Date }
 type Alert = { message: string; tone: 'success' | 'error' }
@@ -38,6 +39,7 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
   const [resetPassword, setResetPassword] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const handleDeleteUser = async (user: User) => {
     if (!window.confirm(`Êtes-vous sûr de vouloir supprimer ${user.nomAffiche} ?`)) return
@@ -178,21 +180,39 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                   {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                 </td>
                 <td data-label="Actions" className={styles.actionsCell}>
-                  <div className={styles.actionsWrapper}>
-                    {!isReadOnly && (
-                      <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
-                        Modifier
-                      </button>
-                    )}
-                    {!isReadOnly && user.id !== currentAdminId && (
-                      <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
-                        Réinit. MDP
-                      </button>
-                    )}
-                    {!isReadOnly && user.id !== currentAdminId && (
-                      <button type="button" onClick={() => handleDeleteUser(user)} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--danger)' }} disabled={loadingId === user.id}>
-                        Supprimer
-                      </button>
+                  <div className={styles.dropdown}>
+                    <button 
+                      type="button" 
+                      className={styles.dropdownBtn} 
+                      onClick={() => setOpenMenuId(openMenuId === user.id ? null : user.id)}
+                      disabled={loadingId === user.id}
+                      aria-haspopup="true"
+                      aria-expanded={openMenuId === user.id}
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {openMenuId === user.id && (
+                      <>
+                        <div className={styles.menuBackdrop} onClick={() => setOpenMenuId(null)} />
+                        <div className={styles.dropdownMenu}>
+                          {!isReadOnly && (
+                            <button type="button" onClick={() => { openEditModal(user); setOpenMenuId(null) }}>
+                              Modifier
+                            </button>
+                          )}
+                          {!isReadOnly && user.id !== currentAdminId && (
+                            <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null); setOpenMenuId(null) }}>
+                              Réinit. MDP
+                            </button>
+                          )}
+                          {!isReadOnly && user.id !== currentAdminId && (
+                            <button type="button" onClick={() => { handleDeleteUser(user); setOpenMenuId(null) }} className={styles.danger}>
+                              Supprimer
+                            </button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 </td>

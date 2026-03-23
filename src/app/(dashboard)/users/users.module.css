@@ -262,6 +262,84 @@
   width: 1%;
 }
 
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdownBtn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.dropdownBtn:hover:not(:disabled) {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownMenu button {
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+  width: 100%;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+
+.dropdownMenu button:hover {
+  background-color: var(--bg-color);
+}
+
+.dropdownMenu button.danger {
+  color: var(--danger);
+}
+
+.dropdownMenu button.danger:hover {
+  background-color: var(--danger-bg);
+}
+
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 10;
+}
+
 @container (max-width: 768px) {
   .tableContainer {
     border: none;
@@ -309,12 +387,5 @@
     font-weight: 600;
     color: var(--text-secondary);
     font-size: 13px;
-  }
-  
-  .actionsWrapper {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding-top: 16px;
   }
 }
