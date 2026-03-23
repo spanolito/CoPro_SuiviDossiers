@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Identifiants invalides.' }, { status: 401 })
     }
 
-    const roleLabel = user.role === 'PRESIDENT_CS' ? 'Admin' : user.role === 'MEMBRE_CS' ? 'Conseil syndical' : 'Read-only'
+    const roleLabel: import('@/lib/auth/rbac').UserRole = 
+      user.role === 'PRESIDENT_CS' ? 'admin' : 
+      user.role === 'MEMBRE_CS' ? 'cs' : 'coproprietaire';
 
     const token = await signToken({
       id: user.id,

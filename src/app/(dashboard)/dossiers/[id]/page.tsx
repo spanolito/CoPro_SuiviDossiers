@@ -8,6 +8,7 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import DossierActions from './DossierActions'
 import DossierStatusControls from './DossierStatusControls'
+import { getDossierCapabilities } from '@/lib/auth/rbac'
 
 export default async function DossierDetailPage({
   params,
@@ -19,8 +20,8 @@ export default async function DossierDetailPage({
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
-  const isAdmin = payload?.role === 'Admin'
-  const isReadOnly = payload?.role === 'COPROPRIETAIRE_LECTURE'
+  const isAdmin = payload?.role === 'admin'
+  const capabilities = getDossierCapabilities(payload?.role as string)
 
   const dossier = await prisma.dossier.findUnique({
     where: { id },
@@ -163,7 +164,7 @@ export default async function DossierDetailPage({
             <span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>{getStatusLabel(dossier.statut)}</span>
           </div>
         </div>
-        {!isReadOnly && (
+        {capabilities.canEdit && (
           <div style={{ display: 'flex', gap: 12 }}>
             <Link href={`/dossiers/${id}/edit`} className="btn btn-outline"><Edit size={16} /> Éditer</Link>
             <DossierActions
@@ -176,7 +177,7 @@ export default async function DossierDetailPage({
         )}
       </div>
 
-      {!isReadOnly && (
+      {capabilities.canAdvance && (
         <DossierStatusControls
           dossierId={id}
           currentStatus={dossier.statut}
@@ -265,7 +266,7 @@ export default async function DossierDetailPage({
               </div>
             )}
 
-            {!isReadOnly && (
+            {capabilities.canAddStep && (
               <form action={addEtape} style={{ marginTop: 24, padding: 16, background: 'var(--bg-color)', borderRadius: 'var(--radius-md)' }}>
                 <h3 style={{ fontSize: 14, marginBottom: 12 }}>Ajouter une étape</h3>
                 <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
@@ -297,7 +298,7 @@ export default async function DossierDetailPage({
               {dossier.commentaires.length === 0 && <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Aucun commentaire.</span>}
             </div>
 
-            {!isReadOnly && (
+            {capabilities.canCommentInternal && (
               <form action={addComment} style={{ display: 'flex', gap: 12 }}>
                 <input type="text" name="content" className="form-control" placeholder="Ajouter une note interne..." required style={{ flex: 1 }} />
                 <button type="submit" className="btn btn-outline">Envoyer</button>
@@ -322,7 +323,7 @@ export default async function DossierDetailPage({
               )}
             </div>
 
-            {!isReadOnly && (
+            {capabilities.canAddDocument && (
               <form action={uploadDocument} style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, border: '1px dashed var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-color)', alignItems: 'center' }}>
                 <UploadCloud size={24} color="var(--text-secondary)" />
                 <input type="url" name="fileUrl" className="form-control" placeholder="Lien du document" required style={{ width: '100%', fontSize: 13 }} />

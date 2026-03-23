@@ -5,13 +5,14 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
+import { hasPermission, assertPermission } from '@/lib/auth/rbac'
 
 export default async function NewDossierPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+  if (!hasPermission(payload?.role as string, 'dossier.create')) {
     redirect('/dossiers')
   }
 
@@ -35,9 +36,7 @@ export default async function NewDossierPage() {
     const token = cookieStore.get('auth_token')?.value
     const payload = token ? await verifyToken(token) : null
 
-    if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
-      throw new Error('Création non autorisée : accès en lecture seule.')
-    }
+    assertPermission(payload?.role as string, 'dossier.create')
 
     const copro = await prisma.copropriete.findFirst()
     if (!copro) throw new Error('Copropriété non trouvée')

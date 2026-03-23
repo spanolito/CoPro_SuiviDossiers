@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { ALLOWED_TRANSITIONS, STATUT_LABELS } from '@/lib/dossier-constants'
+import { hasPermission } from '@/lib/auth/rbac'
 
 export default async function EditDossierPage({
   params,
@@ -19,7 +20,7 @@ export default async function EditDossierPage({
   const token = cookieStore.get('auth_token')?.value
   const payload = token ? await verifyToken(token) : null
 
-  if (payload?.role === 'COPROPRIETAIRE_LECTURE') {
+  if (!hasPermission(payload?.role as string, 'dossier.update')) {
     redirect(`/dossiers/${id}`)
   }
   const dossier = await prisma.dossier.findUnique({ where: { id } })
@@ -31,6 +32,14 @@ export default async function EditDossierPage({
 
   async function updateDossier(formData: FormData) {
     'use server'
+    const { cookies } = await import('next/headers')
+    const { verifyToken } = await import('@/lib/auth')
+    const { assertPermission } = await import('@/lib/auth/rbac')
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth_token')?.value
+    const payload = token ? await verifyToken(token) : null
+
+    assertPermission(payload?.role as string, 'dossier.update')
     const titre = formData.get('titre') as string
     const description = formData.get('description') as string
     const typeDossier = formData.get('typeDossier') as string
@@ -65,11 +74,6 @@ export default async function EditDossierPage({
       }
       updateData.statut = statut
       
-      const { cookies } = await import('next/headers')
-      const { verifyToken } = await import('@/lib/auth')
-      const cookieStore = await cookies()
-      const token = cookieStore.get('auth_token')?.value
-      const payload = token ? await verifyToken(token) : null
 
       await prisma.dossierActivite.create({
         data: {

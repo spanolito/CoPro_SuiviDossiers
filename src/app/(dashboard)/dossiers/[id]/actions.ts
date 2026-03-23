@@ -5,6 +5,7 @@ import { notifyAll } from '@/lib/notifications'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
+import { assertPermission } from '@/lib/auth/rbac'
 
 import { StatutDossier, ALLOWED_TRANSITIONS } from '@/lib/dossier-constants'
 
@@ -15,16 +16,14 @@ async function getCurrentUser() {
   const payload = await verifyToken(token)
   if (!payload) throw new Error('Token invalide')
 
-  if (payload.role === 'COPROPRIETAIRE_LECTURE') {
-    throw new Error('Action non autorisée : accès en lecture seule.')
-  }
 
   return payload
 }
 
 export async function updateDossierStatus(dossierId: string, newStatus: string) {
   const payload = await getCurrentUser()
-  const isAdmin = payload.role === 'Admin'
+  assertPermission(payload.role as string, 'dossier.advance')
+  const isAdmin = payload.role === 'admin'
 
   const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } })
   if (!dossier) throw new Error('Dossier introuvable')
@@ -79,6 +78,7 @@ export async function updateDossierStatus(dossierId: string, newStatus: string) 
 
 export async function archiveDossier(dossierId: string) {
   const payload = await getCurrentUser()
+  assertPermission(payload.role as string, 'dossier.update')
 
   await prisma.dossier.update({
     where: { id: dossierId },
@@ -104,6 +104,7 @@ export async function archiveDossier(dossierId: string) {
 
 export async function finalizeDossier(dossierId: string, finalDecision: string) {
   const payload = await getCurrentUser()
+  assertPermission(payload.role as string, 'dossier.validate')
 
   await prisma.dossier.update({
     where: { id: dossierId },
@@ -130,7 +131,7 @@ export async function finalizeDossier(dossierId: string, finalDecision: string) 
 
 export async function deleteDossier(dossierId: string) {
   const payload = await getCurrentUser()
-  if (payload.role !== 'Admin') throw new Error('Seul le Président peut supprimer un dossier.')
+  if (payload.role !== 'admin') throw new Error('Seul le Président peut supprimer un dossier.')
 
   await prisma.dossier.delete({ where: { id: dossierId } })
 }
