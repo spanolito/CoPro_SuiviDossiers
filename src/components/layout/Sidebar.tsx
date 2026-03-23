@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Building, Upload, UserCircle } from 'lucide-react'
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Building, Upload, UserCircle, BarChart } from 'lucide-react'
 import styles from './layout.module.css'
 import { useSidebar } from './SidebarContext'
 
@@ -14,6 +14,7 @@ export default function Sidebar() {
   const navItems = [
     { name: 'Vue d\'ensemble', href: '/', icon: LayoutDashboard },
     { name: 'Dossiers', href: '/dossiers', icon: FileText },
+    { name: 'Rapports', href: '/rapports', icon: BarChart },
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Utilisateurs', href: '/users', icon: Users },
     { name: 'Préférences', href: '/preferences', icon: Settings },
