@@ -125,46 +125,46 @@ export default async function DossiersListPage({
               </tr>
             ) : dossiers.map((d: any) => (
               <tr key={d.id} style={{ cursor: 'pointer' }}>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none', height: '100%' }}>
+                <td data-label="Réf.">
+                  <Link href={`/dossiers/${d.id}`} className={styles.linkCell} style={{ fontWeight: 600 }}>
                     {d.reference}
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '16px', textDecoration: 'none', height: '100%' }}>
+                <td data-label="Titre">
+                  <Link href={`/dossiers/${d.id}`} className={`${styles.linkCell} ${styles.linkCellColumn}`}>
                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{d.titre}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       {d.prestatairePrincipal?.nom || d.syndicImplique?.nom || d.responsableAction?.nom || 'Non spécifié'}
                     </span>
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
-                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{getTypeDossierLabel(d.typeDossier)}</span>
+                <td data-label="Type">
+                  <Link href={`/dossiers/${d.id}`} className={styles.linkCell} style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                    {getTypeDossierLabel(d.typeDossier)}
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '16px', textDecoration: 'none', height: '100%' }}>
+                <td data-label="Statut">
+                  <Link href={`/dossiers/${d.id}`} className={`${styles.linkCell} ${styles.linkCellGap}`}>
                     <span className={`badge ${getStatusBadgeClass(d.statut)}`}>
                       {getStatusLabel(d.statut)}
                     </span>
                     {d.archived && <span className="badge badge-neutral" style={{ opacity: 0.8 }}>Archivé</span>}
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                <td data-label="Priorité">
+                  <Link href={`/dossiers/${d.id}`} className={styles.linkCell}>
                     <span className={`badge ${getPriorityBadgeClass(d.priorite)}`}>
                       {getPriorityLabel(d.priorite)}
                     </span>
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                <td data-label="Responsable">
+                  <Link href={`/dossiers/${d.id}`} className={styles.linkCell}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{d.responsableCS?.nomAffiche || '-'}</div>
                   </Link>
                 </td>
-                <td>
-                  <Link href={`/dossiers/${d.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '16px', textDecoration: 'none', height: '100%' }}>
+                <td data-label="Actions" className={styles.actionsCell}>
+                  <Link href={`/dossiers/${d.id}`} className={`${styles.linkCell} ${styles.linkCellEnd}`}>
                     <span className={`btn btn-outline ${styles.actionBtn}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       Voir <ArrowRight size={14} />
                     </span>
