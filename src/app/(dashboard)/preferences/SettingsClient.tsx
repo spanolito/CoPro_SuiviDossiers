@@ -17,9 +17,9 @@ const ALL_TABS = [
   { id: 'general', label: 'Général', icon: Settings, permission: Permission.SETTINGS_READ_SELF },
   { id: 'compte', label: 'Mon compte', icon: User, permission: Permission.SETTINGS_READ_SELF },
   { id: 'notifications', label: 'Notifications', icon: Bell, permission: Permission.SETTINGS_READ_SELF },
-  { id: 'application', label: 'Application', icon: AppWindow, permission: Permission.SETTINGS_READ_APP },
   { id: 'workflow', label: 'Workflow', icon: GitBranch, permission: Permission.WORKFLOW_READ },
-  { id: 'logbook', label: 'Journal de Bord', icon: ShieldAlert, permission: Permission.LOGBOOK_READ },
+  { id: 'application', label: 'Application', icon: AppWindow, permission: Permission.SETTINGS_UPDATE_APP }, // Restricted to Admin
+  { id: 'logbook', label: 'Journal de Bord', icon: ShieldAlert, permission: Permission.LOGBOOK_READ }, // Restricted to Admin
 ]
 
 export default function SettingsClient({ user, copro }: { user: any, copro: any }) {
@@ -40,7 +40,7 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
   })
 
   // 2. Mon Compte States
-  const [account, setAccount] = useState({ nomAffiche: user.nomAffiche || '' })
+  const [account, setAccount] = useState({ nomAffiche: user.nomAffiche || '', email: user.email || '' })
   const [pass, setPass] = useState({ current: '', newPass: '', confirm: '' })
   const [showPassModal, setShowPassModal] = useState(false)
 
@@ -191,7 +191,11 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
             <div style={{ maxWidth: 400 }}>
               <div style={formGroupStyle}>
                 <label style={labelStyle}>Nom complet</label>
-                <input type="text" value={account.nomAffiche} onChange={e => setAccount({ nomAffiche: e.target.value })} className="form-control" />
+                <input type="text" value={account.nomAffiche} onChange={e => setAccount({ ...account, nomAffiche: e.target.value })} className="form-control" />
+              </div>
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Adresse e-mail</label>
+                <input type="email" value={account.email} onChange={e => setAccount({ ...account, email: e.target.value })} className="form-control" />
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <button disabled={loading} onClick={handleSaveAccount} className="btn btn-primary">Enregistrer</button>
@@ -230,7 +234,10 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
         return (
           <div style={cardStyle}>
             <h3>Notifications</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20 }}>Préférences des alertes e-mail.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 4 }}>Préférences des alertes e-mail.</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 20, fontStyle: 'italic' }}>
+              Ces paramètres contrôlent l’envoi des notifications par e-mail.
+            </p>
             <div style={{ maxWidth: 450 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14 }}>

@@ -15,9 +15,8 @@ export default function Sidebar() {
     { name: 'Vue d\'ensemble', href: '/', icon: LayoutDashboard },
     { name: 'Dossiers', href: '/dossiers', icon: FileText },
     { name: 'Import', href: '/import', icon: Upload },
-    { name: 'Mon profil', href: '/profil', icon: UserCircle },
     { name: 'Utilisateurs', href: '/users', icon: Users },
-    { name: 'Paramètres', href: '/settings', icon: Settings },
+    { name: 'Préférences', href: '/preferences', icon: Settings },
   ]
 
   const handleLogout = async () => {

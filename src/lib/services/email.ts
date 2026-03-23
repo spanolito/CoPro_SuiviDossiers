@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import prisma from '@/lib/prisma'
 
 export interface EmailPayload {
   to: string | string[]
@@ -52,12 +53,28 @@ function buildHtml({ body, template, data }: Pick<EmailPayload, 'body' | 'templa
 
 export async function sendEmail({ to, subject, body, template, data }: EmailPayload) {
   const recipients = Array.isArray(to) ? to : [to]
-  const from = process.env.SMTP_FROM || 'Copropriété - L\'Ambassadeur <[EMAIL_ADDRESS]>'
+  const from = process.env.SMTP_FROM || 'Copropriété - L\'Ambassadeur <noreply@copro-ambassadeur.fr>'
+
+  // Filter recipients based on preferences
+  const filteredRecipients: string[] = []
+  for (const email of recipients) {
+    const user = await prisma.utilisateur.findUnique({ where: { email } })
+    if (user) {
+      if (template === 'user-access-request' && !user.notifDossier) continue
+      if (template === 'user-status-changed' && !user.notifStatut) continue
+    }
+    filteredRecipients.push(email)
+  }
+
+  if (filteredRecipients.length === 0) {
+    console.log('[EMAIL SERVICE] All recipients filtered out by preferences.')
+    return { id: 'filtered' }
+  }
 
   if (!process.env.RESEND_API_KEY) {
     console.warn('[EMAIL SERVICE] RESEND_API_KEY non configurée.')
     console.log('================ [EMAIL OUTBOUND MOCK] ================')
-    console.log('To:', recipients.join(', '))
+    console.log('To:', filteredRecipients.join(', '))
     console.log('Subject:', subject)
     console.log('From:', from)
     console.log('Content:\n', body || JSON.stringify(data, null, 2))
@@ -69,14 +86,14 @@ export async function sendEmail({ to, subject, body, template, data }: EmailPayl
 
   console.log('[EMAIL SERVICE] Intent and destinations:', {
     from,
-    to: recipients,
+    to: filteredRecipients,
     subject
   })
 
   try {
     const { data: result, error } = await resend.emails.send({
       from,
-      to: recipients,
+      to: filteredRecipients,
       subject,
       html,
     })

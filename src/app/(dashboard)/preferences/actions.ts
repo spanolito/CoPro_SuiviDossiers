@@ -39,13 +39,26 @@ export async function saveGeneralSettings(data: {
 }
 
 // 2. Mon Compte Settings
-export async function saveAccountSettings(data: { nomAffiche: string }) {
+export async function saveAccountSettings(data: { nomAffiche: string, email: string }) {
   const payload = await getSessionUser()
   try {
     requirePermission(payload as any, Permission.SETTINGS_UPDATE_SELF)
+    
+    // Check email uniqueness
+    const existing = await prisma.utilisateur.findFirst({
+      where: { 
+        email: data.email,
+        NOT: { id: payload!.id as string }
+      }
+    })
+    if (existing) throw new Error('Cette adresse e-mail est déjà utilisée.')
+
     await prisma.utilisateur.update({
       where: { id: payload!.id as string },
-      data: { nomAffiche: data.nomAffiche }
+      data: { 
+        nomAffiche: data.nomAffiche,
+        email: data.email
+      }
     })
     return { success: true, message: 'Informations du compte mises à jour.' }
   } catch (e: any) {

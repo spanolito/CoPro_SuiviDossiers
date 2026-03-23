@@ -2,8 +2,7 @@
 
 import { FormEvent, MouseEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateUserDetails, deleteUser } from './actions'
-import { adminResetPassword } from '@/app/(dashboard)/profil/actions'
+import { updateUserDetails, deleteUser, adminResetPassword } from './actions'
 import styles from './users.module.css'
 
 type User = { id: string; nomAffiche: string; email: string; status: string; role: string; createdAt: Date }

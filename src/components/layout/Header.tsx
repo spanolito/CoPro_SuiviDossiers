@@ -15,9 +15,8 @@ const titleMap: Record<string, string> = {
   '/': 'Vue d\'ensemble',
   '/dossiers': 'Répertoire des dossiers',
   '/import': 'Import de dossiers',
-  '/profil': 'Mon profil',
   '/users': 'Gestion des utilisateurs',
-  '/settings': 'Paramètres de l\'application'
+  '/preferences': 'Préférences'
 }
 
 export default function Header({ userName = 'Utilisateur', userRole = 'Membre du Conseil Syndical' }: HeaderProps) {

@@ -6,6 +6,43 @@ import { revalidatePath } from 'next/cache'
 import { notifyAdmins } from '@/lib/notifications'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
+import bcrypt from 'bcryptjs'
+
+
+export async function adminResetPassword(targetUserId: string, temporaryPassword: string) {
+  const admin = await checkAdmin() // Uses the file's checkAdmin which ensures admin
+
+  if (!temporaryPassword || temporaryPassword.length < 6) {
+    return { error: 'Le mot de passe temporaire doit contenir au moins 6 caractères.' }
+  }
+
+  const target = await prisma.utilisateur.findUnique({ where: { id: targetUserId } })
+  if (!target) return { error: 'Utilisateur introuvable.' }
+
+  const newHash = await bcrypt.hash(temporaryPassword, 10)
+  await prisma.utilisateur.update({
+    where: { id: targetUserId },
+    data: { passwordHash: newHash }
+  })
+
+  // Log action
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id as string,
+      action: 'PASSWORD_RESET',
+      description: `Réinitialisation du mot de passe de l'utilisateur ${targetUserId}`,
+    }
+  })
+
+  // Notify admin
+  await notifyAdmins(
+    `Réinitialisation MDP`,
+    `Le mot de passe de l'utilisateur ${targetUserId} a été réinitialisé par ${admin.id}.`,
+    'LOG_SYSTEME' as any
+  )
+
+  return { success: true }
+}
 
 const ALLOWED_STATUSES = ['PENDING', 'ACTIVE', 'DISABLED'] as const
 const ALLOWED_ROLES = ['PRESIDENT_CS', 'MEMBRE_CS', 'COPROPRIETAIRE_LECTURE'] as const
