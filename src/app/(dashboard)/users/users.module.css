@@ -239,10 +239,12 @@
   font-size: 13px;
 }
 
-.actionsCell {
+.actionsWrapper {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 @container (max-width: 768px) {
@@ -290,7 +292,7 @@
     font-size: 13px;
   }
   
-  .actionsCell {
+  .actionsWrapper {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;

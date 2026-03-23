@@ -178,21 +178,23 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                   {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                 </td>
                 <td data-label="Actions" className={styles.actionsCell}>
-                  {!isReadOnly && (
-                    <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
-                      Modifier
-                    </button>
-                  )}
-                  {!isReadOnly && user.id !== currentAdminId && (
-                    <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
-                      Réinit. MDP
-                    </button>
-                  )}
-                  {!isReadOnly && user.id !== currentAdminId && (
-                    <button type="button" onClick={() => handleDeleteUser(user)} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--danger)' }} disabled={loadingId === user.id}>
-                      Supprimer
-                    </button>
-                  )}
+                  <div className={styles.actionsWrapper}>
+                    {!isReadOnly && (
+                      <button type="button" onClick={() => openEditModal(user)} className={styles.actionButton} disabled={loadingId === user.id}>
+                        Modifier
+                      </button>
+                    )}
+                    {!isReadOnly && user.id !== currentAdminId && (
+                      <button type="button" onClick={() => { setResetTarget(user); setResetPassword(''); setResetError(null) }} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--warning)' }} disabled={loadingId === user.id}>
+                        Réinit. MDP
+                      </button>
+                    )}
+                    {!isReadOnly && user.id !== currentAdminId && (
+                      <button type="button" onClick={() => handleDeleteUser(user)} className={styles.actionButton} style={{ fontSize: 12, color: 'var(--danger)' }} disabled={loadingId === user.id}>
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
