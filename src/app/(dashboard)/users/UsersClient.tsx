@@ -154,7 +154,7 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                     onChange={(event) => handleStatusChange(user, event.target.value)}
                     disabled={user.id === currentAdminId || loadingId === user.id || isReadOnly}
                     className="form-control"
-                    style={{ padding: '4px 8px', fontSize: 13, minWidth: 120 }}
+                    style={{ padding: '4px 8px', fontSize: 13, maxWidth: 160, width: '100%' }}
                   >
                     {STATUS_OPTIONS.map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
@@ -167,7 +167,7 @@ export default function UsersClient({ users, currentAdminId, currentUserRole }: 
                     onChange={(event) => handleRoleChange(user, event.target.value)}
                     disabled={user.id === currentAdminId || loadingId === user.id || isReadOnly}
                     className="form-control"
-                    style={{ padding: '4px 8px', fontSize: 13, minWidth: 140 }}
+                    style={{ padding: '4px 8px', fontSize: 13, maxWidth: 200, width: '100%' }}
                   >
                     {ROLE_OPTIONS.map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
