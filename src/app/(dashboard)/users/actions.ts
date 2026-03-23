@@ -4,13 +4,12 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { notifyAdmins } from '@/lib/notifications'
-import { cookies } from 'next/headers'
-import { verifyToken } from '@/lib/auth'
+import { requirePermission } from '@/lib/auth/server'
 import bcrypt from 'bcryptjs'
 
 
 export async function adminResetPassword(targetUserId: string, temporaryPassword: string) {
-  const admin = await checkAdmin() // Uses the file's checkAdmin which ensures admin
+  const admin = await requirePermission('user.admin')
 
   if (!temporaryPassword || temporaryPassword.length < 6) {
     return { error: 'Le mot de passe temporaire doit contenir au moins 6 caractères.' }
@@ -60,18 +59,10 @@ type UpdateUserPayload = {
 
 type UpdateUserResult = { success?: true; error?: string }
 
-async function checkAdmin() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  const payload = token ? await verifyToken(token) : null
-  if (payload?.role !== 'admin') {
-    throw new Error('Unauthorized')
-  }
-  return payload
-}
+// Centralized checkAdmin removed
 
 export async function updateUserDetails(payload: UpdateUserPayload): Promise<UpdateUserResult> {
-  const admin = await checkAdmin()
+  const admin = await requirePermission('user.admin')
 
   const user = await prisma.utilisateur.findUnique({
     where: { id: payload.userId },
@@ -178,7 +169,7 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
 }
 
 export async function deleteUser(userId: string): Promise<UpdateUserResult> {
-  const admin = await checkAdmin()
+  const admin = await requirePermission('user.admin')
   if (userId === admin.id) return { error: "Vous ne pouvez pas vous supprimer vous-même." }
 
   try {

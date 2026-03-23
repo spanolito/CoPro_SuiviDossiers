@@ -1,6 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const secretKey = process.env.JWT_SECRET || 'super-secret-key-change-in-prod'
+const secretKey = process.env.JWT_SECRET
+
+if (!secretKey) {
+  throw new Error('FATAL: JWT_SECRET est requis pour lancer l\'application.')
+}
+
 const key = new TextEncoder().encode(secretKey)
 
 export async function signToken(payload: any) {

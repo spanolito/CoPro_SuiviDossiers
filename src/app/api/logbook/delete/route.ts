@@ -1,22 +1,14 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { cookies } from 'next/headers'
-import { verifyToken } from '@/lib/auth'
-import { Permission, requirePermission } from '@/lib/security/rbac'
+import { requirePermission } from '@/lib/auth/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('auth_token')?.value
-    const payload = token ? await verifyToken(token) : null
-    
-    // Strict RBAC check
+    let payload;
     try {
-      requirePermission(payload as any, Permission.LOGBOOK_DELETE)
+      payload = await requirePermission('logbook.delete')
     } catch (e: any) {
-      if (e.status === 403) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      throw e
+      return NextResponse.json({ error: 'Accès interdit' }, { status: 403 })
     }
 
     const body = await request.json()

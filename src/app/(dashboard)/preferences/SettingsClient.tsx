@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Permission, hasPermission } from '@/lib/security/rbac'
+import { hasPermission } from '@/lib/auth/rbac'
 import LogbookAdmin from '@/components/logbook/LogbookAdmin'
 import { Settings, User, Bell, AppWindow, GitBranch, ShieldAlert, Key } from 'lucide-react'
 import { 
@@ -14,22 +14,22 @@ import {
 } from './actions'
 
 const ALL_TABS = [
-  { id: 'general', label: 'Général', icon: Settings, permission: Permission.SETTINGS_READ_SELF },
-  { id: 'compte', label: 'Mon compte', icon: User, permission: Permission.SETTINGS_READ_SELF },
-  { id: 'notifications', label: 'Notifications', icon: Bell, permission: Permission.SETTINGS_READ_SELF },
-  { id: 'workflow', label: 'Workflow', icon: GitBranch, permission: Permission.WORKFLOW_READ },
-  { id: 'application', label: 'Application', icon: AppWindow, permission: Permission.SETTINGS_UPDATE_APP }, // Restricted to Admin
-  { id: 'logbook', label: 'Journal de Bord', icon: ShieldAlert, permission: Permission.LOGBOOK_READ }, // Restricted to Admin
+  { id: 'general', label: 'Général', icon: Settings, permission: 'settings.update.self' },
+  { id: 'compte', label: 'Mon compte', icon: User, permission: 'settings.update.self' },
+  { id: 'notifications', label: 'Notifications', icon: Bell, permission: 'settings.update.self' },
+  { id: 'workflow', label: 'Workflow', icon: GitBranch, permission: 'workflow.update' },
+  { id: 'application', label: 'Application', icon: AppWindow, permission: 'settings.update.app' },
+  { id: 'logbook', label: 'Journal de Bord', icon: ShieldAlert, permission: 'logbook.read' },
 ]
 
 export default function SettingsClient({ user, copro }: { user: any, copro: any }) {
-  const visibleTabs = ALL_TABS.filter(tab => hasPermission(user, tab.permission))
+  const visibleTabs = ALL_TABS.filter(tab => hasPermission(user, tab.permission as any))
   const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id || 'general')
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
-  const canEditApp = hasPermission(user, Permission.SETTINGS_UPDATE_APP)
-  const canEditWorkflow = hasPermission(user, Permission.WORKFLOW_UPDATE)
+  const canEditApp = hasPermission(user, 'settings.update.app')
+  const canEditWorkflow = hasPermission(user, 'workflow.update')
 
   // 1. Général States
   const [general, setGeneral] = useState({

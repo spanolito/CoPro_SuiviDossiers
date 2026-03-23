@@ -1,17 +1,8 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { cookies } from 'next/headers'
-import { verifyToken } from '@/lib/auth'
-import { Permission, requirePermission } from '@/lib/security/rbac'
+import { requirePermission } from '@/lib/auth/server'
 import bcrypt from 'bcryptjs'
-
-async function getSessionUser() {
-  const cookieStore = await cookies()
-  const token = cookieStore.get('auth_token')?.value
-  if (!token) return null
-  return await verifyToken(token)
-}
 
 // 1. Général Settings
 export async function saveGeneralSettings(data: {
@@ -20,9 +11,8 @@ export async function saveGeneralSettings(data: {
   timeFormat: string
   density: string
 }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.SETTINGS_UPDATE_SELF)
+    const payload = await requirePermission('settings.update.self')
     await prisma.utilisateur.update({
       where: { id: payload!.id as string },
       data: {
@@ -40,9 +30,8 @@ export async function saveGeneralSettings(data: {
 
 // 2. Mon Compte Settings
 export async function saveAccountSettings(data: { nomAffiche: string, email: string }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.SETTINGS_UPDATE_SELF)
+    const payload = await requirePermission('settings.update.self')
     
     // Check email uniqueness
     const existing = await prisma.utilisateur.findFirst({
@@ -68,9 +57,8 @@ export async function saveAccountSettings(data: { nomAffiche: string, email: str
 
 // 2b. Change Password
 export async function changePassword(data: { current: string, newPass: string }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.SETTINGS_UPDATE_SELF)
+    const payload = await requirePermission('settings.update.self')
     const user = await prisma.utilisateur.findUnique({ where: { id: payload!.id as string } })
     if (!user) throw new Error('Utilisateur non trouvé.')
 
@@ -99,9 +87,8 @@ export async function saveNotificationSettings(data: {
   notifValidation: boolean
   notifFrequency: string
 }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.SETTINGS_UPDATE_SELF)
+    const payload = await requirePermission('settings.update.self')
     await prisma.utilisateur.update({
       where: { id: payload!.id as string },
       data: {
@@ -125,9 +112,8 @@ export async function saveApplicationSettings(data: {
   globalNotifs: boolean
   validationRequiredBeforeClose: boolean
 }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.SETTINGS_UPDATE_APP)
+    const payload = await requirePermission('settings.update.app')
     const copro = await prisma.copropriete.findFirst()
     if (!copro) throw new Error('Copropriété non trouvée.')
 
@@ -153,9 +139,8 @@ export async function saveWorkflowSettings(data: {
   defaultValidationDelay: number
   defaultReminderDelay: number
 }) {
-  const payload = await getSessionUser()
   try {
-    requirePermission(payload as any, Permission.WORKFLOW_UPDATE)
+    const payload = await requirePermission('workflow.update')
     const copro = await prisma.copropriete.findFirst()
     if (!copro) throw new Error('Copropriété non trouvée.')
 

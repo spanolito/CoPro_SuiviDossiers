@@ -10,7 +10,15 @@ export type Permission =
   | 'dossier.comment.internal'
   | 'dossier.document.add'
   | 'dossier.step.add'
-  | 'dossier.step.update';
+  | 'dossier.step.update'
+  | 'dossier.delete'
+  | 'user.admin'
+  | 'settings.update.self'
+  | 'settings.update.app'
+  | 'workflow.update'
+  | 'logbook.read'
+  | 'logbook.export'
+  | 'logbook.delete';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   admin: [
@@ -23,7 +31,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'dossier.comment.internal',
     'dossier.document.add',
     'dossier.step.add',
-    'dossier.step.update'
+    'dossier.step.update',
+    'dossier.delete',
+    'user.admin',
+    'settings.update.self',
+    'settings.update.app',
+    'workflow.update',
+    'logbook.read',
+    'logbook.export',
+    'logbook.delete'
   ],
   cs: [
     'dossier.read',
@@ -33,10 +49,12 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'dossier.comment.internal',
     'dossier.document.add',
     'dossier.step.add',
-    'dossier.step.update'
+    'dossier.step.update',
+    'settings.update.self'
   ],
   coproprietaire: [
-    'dossier.read'
+    'dossier.read',
+    'settings.update.self'
   ]
 };
 
