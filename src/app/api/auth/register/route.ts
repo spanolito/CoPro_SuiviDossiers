@@ -39,14 +39,12 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Notify Président du CS
+    // Notify Président du CS (UI notification)
     const admins = await prisma.utilisateur.findMany({
       where: { role: 'PRESIDENT_CS' }
     })
 
     if (admins.length > 0) {
-      const { sendEmail } = await import('@/lib/services/email') // Dynamic import to avoid edge runtime issues if applicable, but standard import top is fine. Let's use top import for safety or dynamic for Next actions framework standard. Top import is fine.
-      
       for (const admin of admins) {
         await prisma.notification.create({
           data: {
@@ -56,14 +54,13 @@ export async function POST(request: NextRequest) {
             message: `L'utilisateur ${name} (${email}) demande l'accès et attend validation.`,
           }
         })
-
-        await sendEmail({
-          to: admin.email,
-          subject: 'Nouvelle demande d\'accès - CoPro Suivi',
-          body: `L'utilisateur ${name} (${email}) a créé un compte et demande l'accès en tant que copropriétaire.\n\nDate de la demande: ${new Date().toLocaleString('fr-FR')}`
-        })
       }
     }
+
+    // Send real email notification to Admin Email
+    const { notifyAdminNewUser } = await import('@/lib/utils/notifications')
+    await notifyAdminNewUser({ nomAffiche: name, email })
+
 
 
     return NextResponse.json(

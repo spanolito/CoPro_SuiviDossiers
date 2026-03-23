@@ -76,6 +76,13 @@ export default async function EditDossierPage({
       data: updateData
     })
 
+    // Trigger Critical Alert if priority escalated to CRITIQUE
+    if (priorite === 'CRITIQUE' && dossier.priorite !== 'CRITIQUE') {
+      const { notifyAdminCriticalDossier } = await import('@/lib/utils/notifications')
+      await notifyAdminCriticalDossier({ titre, reference: dossier.reference })
+    }
+
+
     revalidatePath(`/dossiers/${id}`)
     redirect(`/dossiers/${id}`)
   }

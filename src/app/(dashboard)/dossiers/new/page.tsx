@@ -42,7 +42,7 @@ export default async function NewDossierPage() {
         typeDossier: typeDossier as any,
         priorite: priorite as any,
         statut: 'ENREGISTRE',
-        responsableCSId: responsableCSId || payload?.id as string,
+        responsableCSId: responsableCSId || (payload?.id as string),
         createurUserId: payload?.id as string,
         prestatairePrincipalId: prestatairePrincipalId || null,
         syndicImpliqueId: syndicImpliqueId || null,
@@ -50,6 +50,13 @@ export default async function NewDossierPage() {
         precisionLocalisation: precisionLocalisation || null,
       }
     })
+
+    // Trigger Critical Alert if created with priority CRITIQUE
+    if (priorite === 'CRITIQUE') {
+      const { notifyAdminCriticalDossier } = await import('@/lib/utils/notifications')
+      await notifyAdminCriticalDossier({ titre, reference })
+    }
+
 
     await prisma.dossierActivite.create({
       data: {
