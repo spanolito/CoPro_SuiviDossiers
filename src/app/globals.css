@@ -72,6 +72,7 @@ a {
   display: flex;
   min-height: 100vh;
   width: 100%;
+  overflow-x: hidden; /* Prévient le scroll global */
 }
 
 .main-content {
@@ -87,6 +88,7 @@ a {
   width: 100%;
   max-width: 1280px; /* equivalent to max-w-7xl */
   margin: 0 auto;
+  overflow-x: auto; /* Permet le défilement local des tableaux larges */
 }
 
 @media (max-width: 768px) {
