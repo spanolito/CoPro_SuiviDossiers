@@ -9,7 +9,6 @@ import { StatutDossier, ALLOWED_TRANSITIONS } from '@/lib/dossier-constants'
 
 export async function updateDossierStatus(dossierId: string, newStatus: string) {
   const payload = await requirePermission('dossier.advance')
-  const isAdmin = payload.role === 'admin' || payload.role === 'PRESIDENT_CS'
 
   const dossier = await prisma.dossier.findUnique({ where: { id: dossierId } })
   if (!dossier) throw new Error('Dossier introuvable')
@@ -19,8 +18,8 @@ export async function updateDossierStatus(dossierId: string, newStatus: string) 
     throw new Error(`Transition de "${dossier.statut}" vers "${newStatus}" non autorisée.`)
   }
 
-  if (newStatus === 'CLOTURE' && !isAdmin) {
-    throw new Error('Seul le Président du CS peut clôturer un dossier.')
+  if (newStatus === 'CLOTURE') {
+    await requirePermission('dossier.close')
   }
 
   if ((newStatus === 'AFFECTE' || newStatus === 'EN_COURS') && !dossier.responsableCSId) {

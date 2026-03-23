@@ -12,6 +12,7 @@ export type Permission =
   | 'dossier.step.add'
   | 'dossier.step.update'
   | 'dossier.delete'
+  | 'dossier.close'
   | 'user.admin'
   | 'settings.update.self'
   | 'settings.update.app'
@@ -33,6 +34,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'dossier.step.add',
     'dossier.step.update',
     'dossier.delete',
+    'dossier.close',
     'user.admin',
     'settings.update.self',
     'settings.update.app',

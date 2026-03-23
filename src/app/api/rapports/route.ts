@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         prestatairePrincipal: true,
         syndicImplique: true,
         commentaires: {
+          where: isAdmin ? undefined : { interne: false },
           orderBy: { createdAt: 'desc' },
           take: 5
         },

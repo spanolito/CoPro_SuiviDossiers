@@ -10,10 +10,12 @@ export async function createImportsBulk(dossiers: any[]) {
   const payload = await requirePermission('dossier.create')
   const userId = payload.id as string
 
-  const copro = await prisma.copropriete.findFirst()
-  if (!copro) throw new Error('Configuration manquante')
+  const user = await prisma.utilisateur.findUnique({ where: { id: userId } })
+  if (!user) throw new Error('Utilisateur introuvable')
 
-  const count = await prisma.dossier.count()
+  const coproprieteId = user.coproprieteId
+
+  const count = await prisma.dossier.count({ where: { coproprieteId } })
   let currentCount = count + 1
   const year = new Date().getFullYear()
 
@@ -23,7 +25,7 @@ export async function createImportsBulk(dossiers: any[]) {
 
     const newDoc = await prisma.dossier.create({
       data: {
-        coproprieteId: copro.id,
+        coproprieteId: coproprieteId,
         reference: ref,
         titre: d.title || d.titre,
         description: d.description || '',
