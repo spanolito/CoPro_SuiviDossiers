@@ -52,7 +52,7 @@ function buildHtml({ body, template, data }: Pick<EmailPayload, 'body' | 'templa
 
 export async function sendEmail({ to, subject, body, template, data }: EmailPayload) {
   const recipients = Array.isArray(to) ? to : [to]
-  const from = process.env.SMTP_FROM || 'CoPro <noreply@copro-ambassadeur.fr>'
+  const from = process.env.SMTP_FROM || 'Conseil Syndical - L\'Ambassadeur <[EMAIL_ADDRESS]>'
 
   if (!process.env.RESEND_API_KEY) {
     console.warn('[EMAIL SERVICE] RESEND_API_KEY non configurée.')
@@ -67,10 +67,10 @@ export async function sendEmail({ to, subject, body, template, data }: EmailPayl
 
   const html = buildHtml({ body, template, data })
 
-  console.log('[EMAIL SERVICE] Intent and destinations:', { 
-    from, 
-    to: recipients, 
-    subject 
+  console.log('[EMAIL SERVICE] Intent and destinations:', {
+    from,
+    to: recipients,
+    subject
   })
 
   try {
