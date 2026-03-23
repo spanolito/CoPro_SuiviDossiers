@@ -88,7 +88,7 @@ a {
   width: 100%;
   max-width: 1280px; /* equivalent to max-w-7xl */
   margin: 0 auto;
-  overflow-x: auto; /* Permet le défilement local des tableaux larges */
+  overflow-x: hidden; /* Empêche le défilement global de la page, force le défilement local des tableaux */
 }
 
 @media (max-width: 768px) {
