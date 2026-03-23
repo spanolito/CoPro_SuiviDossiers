@@ -246,7 +246,7 @@ export default function SettingsClient({ user, copro }: { user: any, copro: any 
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div style={formGroupStyle}>
-                  <label style={labelStyle}>Canton</label>
+                  <label style={labelStyle}>Département</label>
                   <input type="text" value={account.canton} onChange={e => setAccount({ ...account, canton: e.target.value })} className="form-control" />
                 </div>
                 <div style={formGroupStyle}>
