@@ -34,8 +34,11 @@ export async function POST(request: NextRequest) {
   }
 
   const rawRole = (payload.role as string) || 'COPROPRIETAIRE_LECTURE'
-  const isAdmin = rawRole === 'PRESIDENT_CS'
-  const isCS = rawRole === 'MEMBRE_CS'
+  const isAdmin = rawRole === 'admin' || rawRole === 'PRESIDENT_CS'
+
+  if (!isAdmin) {
+    return NextResponse.json({ error: 'Accès réservé au Président du Conseil Syndical' }, { status: 403 })
+  }
 
   try {
     const { perimetre = 'dossiers_ouverts', dateDeb, dateFin } = await request.json()
@@ -110,15 +113,7 @@ export async function POST(request: NextRequest) {
         markdown += `## 2. ${TYPE_DOSSIER_LABELS[cat] || cat}\n\n`
 
         for (const d of catDossiers) {
-          const isSensitive = d.statut === 'BLOQUE' || d.priorite === 'CRITIQUE'
-          const isRestricted = !isAdmin && !isCS && isSensitive
-
           markdown += `### ${d.titre} (${d.reference})\n`
-          
-          if (isRestricted) {
-             markdown += `*Contenu masqué pour les copropriétaires (confidentiel)*\n\n`
-             continue
-          }
 
           // Contextualisation
           const desc = d.description ? d.description.split('\n')[0] : 'Aucune description'
@@ -148,19 +143,17 @@ export async function POST(request: NextRequest) {
              markdown += `* **Points en attente** : Aucun point bloquant identifié.\n`
           }
 
-          // Comments (Admin/CS only)
-          if (isAdmin || isCS) {
-             const publicComments = d.commentaires.filter(c => !c.interne)
-             const privateComments = d.commentaires.filter(c => c.interne)
+          // Comments (Admin only now)
+          const publicComments = d.commentaires.filter(c => !c.interne)
+          const privateComments = d.commentaires.filter(c => c.interne)
              
-             if (publicComments.length > 0) {
-                markdown += `* **Commentaires publics** :\n`
-                publicComments.slice(0, 2).forEach(c => markdown += `  - ${c.contenu}\n`)
-             }
-             if (privateComments.length > 0 && isAdmin) {
-                markdown += `* **Notes internes (Confidential)** :\n`
-                privateComments.slice(0, 2).forEach(c => markdown += `  - ${c.contenu}\n`)
-             }
+          if (publicComments.length > 0) {
+             markdown += `* **Commentaires publics** :\n`
+             publicComments.slice(0, 2).forEach(c => markdown += `  - ${c.contenu}\n`)
+          }
+          if (privateComments.length > 0) {
+             markdown += `* **Notes internes (Confidentiel)** :\n`
+             privateComments.slice(0, 2).forEach(c => markdown += `  - ${c.contenu}\n`)
           }
 
           markdown += `\n`

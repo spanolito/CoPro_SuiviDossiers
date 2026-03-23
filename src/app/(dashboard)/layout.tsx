@@ -24,7 +24,7 @@ export default async function DashboardLayout({
   return (
     <SidebarProvider>
       <div className="app-container">
-        <Sidebar />
+        <Sidebar userRole={rawRole} />
         <div className="main-content">
           <Header 
             userName={userName} 

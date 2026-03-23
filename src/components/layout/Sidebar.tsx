@@ -6,10 +6,12 @@ import { LayoutDashboard, FileText, Users, Settings, LogOut, Building, Upload, U
 import styles from './layout.module.css'
 import { useSidebar } from './SidebarContext'
 
-export default function Sidebar() {
+export default function Sidebar({ userRole }: { userRole: string }) {
   const pathname = usePathname()
   const router = useRouter()
   const { isOpen, closeSidebar } = useSidebar()
+
+  const isAuthorized = userRole === 'admin' || userRole === 'PRESIDENT_CS'
 
   const navItems = [
     { name: 'Vue d\'ensemble', href: '/', icon: LayoutDashboard },
@@ -18,7 +20,7 @@ export default function Sidebar() {
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Utilisateurs', href: '/users', icon: Users },
     { name: 'Préférences', href: '/preferences', icon: Settings },
-  ]
+  ].filter(item => !['/rapports', '/import', '/users'].includes(item.href) || isAuthorized)
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
