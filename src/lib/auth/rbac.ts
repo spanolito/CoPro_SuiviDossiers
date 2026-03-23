@@ -19,7 +19,8 @@ export type Permission =
   | 'workflow.update'
   | 'logbook.read'
   | 'logbook.export'
-  | 'logbook.delete';
+  | 'logbook.delete'
+  | 'dossier.history.override';
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   admin: [
@@ -41,7 +42,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'workflow.update',
     'logbook.read',
     'logbook.export',
-    'logbook.delete'
+    'logbook.delete',
+    'dossier.history.override'
   ],
   cs: [
     'dossier.read',

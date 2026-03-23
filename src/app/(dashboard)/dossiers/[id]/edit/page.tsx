@@ -9,10 +9,13 @@ import { hasPermission } from '@/lib/auth/rbac'
 
 export default async function EditDossierPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>,
+  searchParams: Promise<{ mode?: string }>
 }) {
   const { id } = await params
+  const mode = (await searchParams).mode
 
   const { cookies } = await import('next/headers')
   const { verifyToken } = await import('@/lib/auth')
@@ -23,6 +26,9 @@ export default async function EditDossierPage({
   if (!hasPermission(payload?.role as string, 'dossier.update')) {
     redirect(`/dossiers/${id}`)
   }
+
+  const isHistoryOverride = mode === 'admin' && hasPermission(payload?.role as string, 'dossier.history.override')
+
   const dossier = await prisma.dossier.findUnique({ where: { id } })
   if (!dossier) notFound()
 
@@ -67,13 +73,42 @@ export default async function EditDossierPage({
       dateDerniereAction: new Date(),
     }
 
+    if (isHistoryOverride) {
+      const createdAtStr = formData.get('createdAt') as string
+      const createurUserId = formData.get('createurUserId') as string
+
+      if (createdAtStr) {
+        const newDate = new Date(createdAtStr)
+        if (Math.abs(newDate.getTime() - dossier.createdAt.getTime()) > 1000) {
+          updateData.createdAt = newDate
+          await prisma.auditLog.create({
+            data: {
+              userId: payload?.id as string,
+              action: 'HISTORY_OVERRIDE',
+              description: `Modifié date création dossier ${id} : ${dossier.createdAt.toISOString()} -> ${newDate.toISOString()}`
+            }
+          })
+        }
+      }
+
+      if (createurUserId && createurUserId !== dossier.createurUserId) {
+        updateData.createurUserId = createurUserId
+        await prisma.auditLog.create({
+          data: {
+            userId: payload?.id as string,
+            action: 'HISTORY_OVERRIDE',
+            description: `Modifié créateur dossier ${id} : ${dossier.createurUserId} -> ${createurUserId}`
+          }
+        })
+      }
+    }
+
     if (statut && statut !== dossier.statut) {
       const allowed = ALLOWED_TRANSITIONS[dossier.statut] || []
       if (!allowed.includes(statut)) {
         throw new Error(`Transition de "${dossier.statut}" vers "${statut}" non autorisée.`)
       }
       updateData.statut = statut
-      
 
       await prisma.dossierActivite.create({
         data: {
@@ -90,12 +125,10 @@ export default async function EditDossierPage({
       data: updateData
     })
 
-    // Trigger Critical Alert if priority escalated to CRITIQUE
     if (priorite === 'CRITIQUE' && dossier.priorite !== 'CRITIQUE') {
       const { notifyAdminCriticalDossier } = await import('@/lib/utils/notifications')
       await notifyAdminCriticalDossier({ titre, reference: dossier.reference })
     }
-
 
     revalidatePath(`/dossiers/${id}`)
     redirect(`/dossiers/${id}`)
@@ -106,7 +139,22 @@ export default async function EditDossierPage({
       <Link href={`/dossiers/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-secondary)', marginBottom: 16, fontSize: 14 }}>
         ← Retour au dossier
       </Link>
-      <h1>Modifier : {dossier.titre}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h1 style={{ margin: 0 }}>Modifier : {dossier.titre}</h1>
+        {payload?.role === 'admin' && (
+          <Link href={`/dossiers/${id}/edit${isHistoryOverride ? '' : '?mode=admin'}`} className="btn btn-outline" style={{ fontSize: 13, borderColor: isHistoryOverride ? 'var(--danger)' : undefined, color: isHistoryOverride ? 'var(--danger)' : undefined }}>
+            {isHistoryOverride ? 'Sortir du Mode Expert' : 'Correction Administrative'}
+          </Link>
+        )}
+      </div>
+
+      {isHistoryOverride && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px 16px', borderRadius: 'var(--radius-md)', marginBottom: 20, color: '#991b1b', fontSize: 14 }}>
+          <strong>⚠️ Mode Correction d’Histoire Actif</strong><br />
+          Vous modifiez des champs normalement immuables (date de création, créateur). Toute modification sera enregistrée dans le journal d'audit.
+        </div>
+      )}
+
       <form action={updateDossier} className={styles.formCard}>
         <h2 className={styles.sectionTitle}>Informations principales</h2>
         <div className={styles.formGrid}>
@@ -191,6 +239,30 @@ export default async function EditDossierPage({
             </select>
           </div>
         </div>
+
+        {isHistoryOverride && (
+          <>
+            <h2 className={styles.sectionTitle} style={{ marginTop: 32, color: 'var(--danger)' }}>Historique (Administration)</h2>
+            <div className={styles.formGrid} style={{ marginBottom: 24 }}>
+              <div className="form-group">
+                <label htmlFor="createdAt">Date de Création</label>
+                <input 
+                  type="datetime-local" 
+                  id="createdAt" 
+                  name="createdAt" 
+                  className="form-control" 
+                  defaultValue={dossier.createdAt.toISOString().slice(0, 16)} 
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="createurUserId">Créateur / Auteur</label>
+                <select id="createurUserId" name="createurUserId" className="form-control" defaultValue={dossier.createurUserId}>
+                  {users.map((u: any) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
 
         <div className={styles.actions}>
           <Link href={`/dossiers/${dossier.id}`} className="btn btn-outline">Annuler</Link>
