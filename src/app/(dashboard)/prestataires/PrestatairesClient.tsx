@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, Edit, Trash2, ExternalLink, RefreshCw } from 'lucide-react'
 import { createPrestataire, updatePrestataire, deletePrestataire, syncPrestataires } from './actions'
+import styles from './prestataires.module.css'
 
 type Prestataire = {
   id: string
@@ -124,7 +125,7 @@ export default function PrestatairesClient({
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      <div className={styles.pageHeader}>
         <div>
           <h2 style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Prestataires</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Consultez et gérez la liste des fournisseurs et prestataires.</p>
@@ -146,22 +147,22 @@ export default function PrestatairesClient({
         )}
       </div>
 
-      <div style={{ background: 'var(--panel-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className={styles.tableContainer}>
+        <table className={styles.table}>
           <thead>
-            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Nom</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Contact</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Téléphone</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>E-mail</th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Statut</th>
-              {canEdit && <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Actions</th>}
+            <tr>
+              <th>Nom</th>
+              <th>Contact</th>
+              <th>Téléphone</th>
+              <th>E-mail</th>
+              <th>Statut</th>
+              {canEdit && <th style={{ textAlign: 'right' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '14px 16px' }}>
+              <tr key={item.id}>
+                <td data-label="Nom">
                   <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.nom}</div>
                   {item.siteWeb && (
                     <a href={item.siteWeb.startsWith('http') ? item.siteWeb : `https://${item.siteWeb}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
@@ -169,19 +170,19 @@ export default function PrestatairesClient({
                     </a>
                   )}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 14 }}>
+                <td data-label="Contact">
                   <div>{item.contactPrincipal || '-'}</div>
                   {item.contactRole && <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{item.contactRole}</div>}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 14 }}>{item.telephone || '-'}</td>
-                <td style={{ padding: '14px 16px', fontSize: 14 }}>{item.email || '-'}</td>
-                <td style={{ padding: '14px 16px' }}>
+                <td data-label="Téléphone">{item.telephone || '-'}</td>
+                <td data-label="E-mail">{item.email || '-'}</td>
+                <td data-label="Statut">
                   <span className={`badge ${item.actif ? 'badge-success' : 'badge-normal'}`}>
                     {item.actif ? 'Actif' : 'Inactif'}
                   </span>
                 </td>
                 {canEdit && (
-                  <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                  <td data-label="Actions" style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                       <button onClick={() => handleEdit(item)} className="btn btn-outline" style={{ padding: '4px 8px', fontSize: 12 }}>
                         <Edit size={14} /> Modifier
