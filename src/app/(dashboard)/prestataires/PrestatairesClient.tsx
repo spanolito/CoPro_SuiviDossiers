@@ -131,7 +131,7 @@ export default function PrestatairesClient({
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Consultez et gérez la liste des fournisseurs et prestataires.</p>
         </div>
         {canEdit && (
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className={styles.headerActions}>
             <button 
               onClick={handleSync} 
               className="btn btn-outline" 
