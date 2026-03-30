@@ -13,6 +13,7 @@ import DossierStatusControls from './DossierStatusControls'
 import StepEditModal from './StepEditModal'
 import { getDossierCapabilities } from '@/lib/auth/rbac'
 import { requirePermission } from '@/lib/auth/server'
+import { recordDossierEvent } from '@/lib/dossier-tracking'
 import { getPriorityLabel, getStatusLabel } from '@/lib/dossier-constants'
 
 type StepWithHistory = {
@@ -105,8 +106,13 @@ export default async function DossierDetailPage({
           stepDate: new Date(),
         }
       })
-      await prisma.dossierActivite.create({
-        data: { dossierId: id, userId: payload?.id as string, typeAction: 'ETAPE_AJOUTEE', resume: `Étape "${titre}" ajoutée` }
+      await recordDossierEvent({
+        dossierId: id,
+        userId: payload?.id as string,
+        typeAction: 'ETAPE_AJOUTEE',
+        resume: `Étape "${titre}" ajoutée`,
+        action: 'STEP_ADDED',
+        metadata: { titre, status },
       })
       revalidatePath(`/dossiers/${id}`)
     }
@@ -120,11 +126,12 @@ export default async function DossierDetailPage({
       const payload = await requirePermission('dossier.comment.internal')
 
       if (payload?.id) {
-        await prisma.dossierCommentaire.create({
-          data: { contenu, auteurUserId: payload.id as string, dossierId: id }
-        })
-        await prisma.dossierActivite.create({
-          data: { dossierId: id, userId: payload.id as string, typeAction: 'COMMENTAIRE_AJOUTE', resume: 'Commentaire ajouté' }
+        await recordDossierEvent({
+          dossierId: id,
+          userId: payload.id as string,
+          typeAction: 'COMMENTAIRE_AJOUTE',
+          resume: 'Commentaire ajouté',
+          action: 'COMMENT_ADDED',
         })
         revalidatePath(`/dossiers/${id}`)
       }
@@ -152,8 +159,13 @@ export default async function DossierDetailPage({
           uploadedById: payload?.id as string,
         }
       })
-      await prisma.dossierActivite.create({
-        data: { dossierId: id, userId: payload?.id as string, typeAction: 'DOCUMENT_AJOUTE', resume: `Document "${fileName}" ajouté` }
+      await recordDossierEvent({
+        dossierId: id,
+        userId: payload?.id as string,
+        typeAction: 'DOCUMENT_AJOUTE',
+        resume: `Document "${fileName}" ajouté`,
+        action: 'DOCUMENT_UPLOADED',
+        metadata: { fileName, fileUrl },
       })
       revalidatePath(`/dossiers/${id}`)
     }
