@@ -63,16 +63,7 @@ export async function POST(request: NextRequest) {
     // Update last login
     await prisma.utilisateur.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
 
-    // Log action
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'LOGIN',
-        description: `Connexion réussie de ${user.nomAffiche}`,
-      }
-    })
-
-    // Also Log system activity for dashboard visibility
+    // Standardized log for dashboard and persistence
     await logActivity({
       userId: user.id,
       action: 'LOGIN',

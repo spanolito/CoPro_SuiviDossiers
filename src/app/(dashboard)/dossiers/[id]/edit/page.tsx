@@ -84,12 +84,12 @@ export default async function EditDossierPage({
         const newDate = new Date(createdAtStr)
         if (Math.abs(newDate.getTime() - dossier.createdAt.getTime()) > 1000) {
           updateData.createdAt = newDate
-          await prisma.auditLog.create({
-            data: {
-              userId: payload?.id as string,
-              action: 'HISTORY_OVERRIDE',
-              description: `Modifié date création dossier ${id} : ${dossier.createdAt.toISOString()} -> ${newDate.toISOString()}`
-            }
+          await logActivity({
+            userId: payload?.id as string,
+            action: 'HISTORY_OVERRIDE_DATE',
+            entity: 'DOSSIER',
+            entityId: id,
+            metadata: { oldDate: dossier.createdAt.toISOString(), newDate: newDate.toISOString() }
           })
           await logActivity({
             userId: payload?.id as string,
@@ -103,12 +103,12 @@ export default async function EditDossierPage({
 
       if (createurUserId && createurUserId !== dossier.createurUserId) {
         updateData.createurUserId = createurUserId
-        await prisma.auditLog.create({
-          data: {
-            userId: payload?.id as string,
-            action: 'HISTORY_OVERRIDE',
-            description: `Modifié créateur dossier ${id} : ${dossier.createurUserId} -> ${createurUserId}`
-          }
+        await logActivity({
+          userId: payload?.id as string,
+          action: 'HISTORY_OVERRIDE_CREATOR',
+          entity: 'DOSSIER',
+          entityId: id,
+          metadata: { oldCreator: dossier.createurUserId, newCreator: createurUserId }
         })
       }
     }

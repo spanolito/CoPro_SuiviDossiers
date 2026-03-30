@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { requirePermission } from '@/lib/auth/server'
+import { logActivity } from '@/lib/activity-log'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,12 +20,12 @@ export async function POST(request: NextRequest) {
     await prisma.auditLog.deleteMany({})
 
     // Log the purge action itself
-    await prisma.auditLog.create({
-      data: {
-        userId: payload?.id as string,
-        action: 'LOGBOOK_DELETE',
-        description: 'Le journal de bord a été entièrement effacé.',
-      }
+    await logActivity({
+      userId: payload?.id as string,
+      action: 'LOGBOOK_DELETE',
+      entity: 'SYSTEM',
+      entityId: 'AUDIT_LOGS',
+      metadata: { description: 'Journal de bord effacé' }
     })
 
     return NextResponse.json({ success: true, message: 'Journal de bord effacé avec succès.' })

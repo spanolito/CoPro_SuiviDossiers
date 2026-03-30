@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { createNotifications } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,20 +42,17 @@ export async function POST(request: NextRequest) {
 
     // Notify Président du CS (UI notification)
     const admins = await prisma.utilisateur.findMany({
-      where: { role: 'PRESIDENT_CS' }
+      where: { role: 'PRESIDENT_CS', status: 'ACTIVE' },
+      select: { id: true }
     })
 
     if (admins.length > 0) {
-      for (const admin of admins) {
-        await prisma.notification.create({
-          data: {
-            userId: admin.id,
-            type: 'NOUVEL_UTILISATEUR',
-            titre: 'Nouvelle inscription',
-            message: `L'utilisateur ${name} (${email}) demande l'accès et attend validation.`,
-          }
-        })
-      }
+      await createNotifications({
+        userIds: admins.map(a => a.id),
+        title: 'Nouvelle inscription',
+        message: `L'utilisateur ${name} (${email}) demande l'accès et attend validation.`,
+        type: 'NOUVEL_UTILISATEUR'
+      })
     }
 
     // Send real email notification to Admin Email

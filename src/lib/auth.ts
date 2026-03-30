@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose'
 
 const secretKey = process.env.JWT_SECRET
-export const SESSION_MAX_AGE = 60 * 60 * 24 * 7
+export const SESSION_MAX_AGE = 60 * 60 * 24
 
 if (!secretKey) {
   throw new Error('FATAL: JWT_SECRET est requis pour lancer l\'application.')
@@ -20,7 +20,7 @@ export async function signToken(payload: SessionPayload) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('24h')
     .sign(key)
 }
 

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { notifyAdmins } from '@/lib/notifications'
 import { requirePermission } from '@/lib/auth/server'
 import bcrypt from 'bcryptjs'
+import { logActivity } from '@/lib/activity-log'
 
 
 export async function adminResetPassword(targetUserId: string, temporaryPassword: string) {
@@ -25,12 +26,12 @@ export async function adminResetPassword(targetUserId: string, temporaryPassword
   })
 
   // Log action
-  await prisma.auditLog.create({
-    data: {
-      userId: admin.id as string,
-      action: 'PASSWORD_RESET',
-      description: `Réinitialisation du mot de passe de l'utilisateur ${targetUserId}`,
-    }
+  await logActivity({
+    userId: admin.id as string,
+    action: 'PASSWORD_RESET',
+    entity: 'USER',
+    entityId: targetUserId,
+    metadata: { reason: 'Admin reset' }
   })
 
   // Notify admin
@@ -123,12 +124,12 @@ export async function updateUserDetails(payload: UpdateUserPayload): Promise<Upd
     })
 
     // Log action
-    await prisma.auditLog.create({
-      data: {
-        userId: admin.id as string,
-        action: 'USER_UPDATE',
-        description: `Modification de l'utilisateur ${payload.userId} (${Object.keys(updates).join(', ')})`,
-      }
+    await logActivity({
+      userId: admin.id as string,
+      action: 'USER_UPDATE',
+      entity: 'USER',
+      entityId: payload.userId,
+      metadata: { fields: Object.keys(updates) }
     })
 
     // Notify admin in system
@@ -176,12 +177,12 @@ export async function deleteUser(userId: string): Promise<UpdateUserResult> {
     await prisma.utilisateur.delete({ where: { id: userId } })
     
     // Log action
-    await prisma.auditLog.create({
-      data: {
-        userId: admin.id as string,
-        action: 'USER_DELETE',
-        description: `Suppression de l'utilisateur ${userId}`,
-      }
+    await logActivity({
+      userId: admin.id as string,
+      action: 'USER_DELETE',
+      entity: 'USER',
+      entityId: userId,
+      metadata: { success: true }
     })
 
     await notifyAdmins(

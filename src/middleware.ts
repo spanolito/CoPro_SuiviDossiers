@@ -63,8 +63,8 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // Refresh the session when the user is active and less than 24h remain.
-  if (payload.exp && (payload.exp as number) - (Date.now() / 1000) < 24 * 60 * 60) {
+  // Refresh the session when the user is active and less than 6h remain.
+  if (payload.exp && (payload.exp as number) - (Date.now() / 1000) < 6 * 60 * 60) {
     const newToken = await signToken({
       id: payload.id as string,
       email: payload.email as string,
