@@ -13,7 +13,7 @@ import DossierStatusControls from './DossierStatusControls'
 import StepEditModal from './StepEditModal'
 import { getDossierCapabilities } from '@/lib/auth/rbac'
 import { requirePermission } from '@/lib/auth/server'
-import { recordDossierEvent } from '@/lib/dossier-tracking'
+import { recordDossierEvent, notifyDossierStakeholders } from '@/lib/dossier-tracking'
 import { getPriorityLabel, getStatusLabel } from '@/lib/dossier-constants'
 
 type StepWithHistory = {
@@ -126,13 +126,16 @@ export default async function DossierDetailPage({
       const payload = await requirePermission('dossier.comment.internal')
 
       if (payload?.id) {
-        await recordDossierEvent({
-          dossierId: id,
-          userId: payload.id as string,
-          typeAction: 'COMMENTAIRE_AJOUTE',
-          resume: 'Commentaire ajouté',
-          action: 'COMMENT_ADDED',
-        })
+        const dossier = await prisma.dossier.findUnique({ where: { id }, select: { reference: true, createurUserId: true, responsableCSId: true, assignedToId: true } })
+        if (dossier) {
+          await notifyDossierStakeholders({
+            dossier,
+            title: `Nouveau commentaire: ${dossier.reference}`,
+            message: `Un nouveau commentaire a été ajouté au dossier ${dossier.reference}.`,
+            type: 'COMMENTAIRE_AJOUTE',
+            link: `/dossiers/${id}`,
+          })
+        }
         revalidatePath(`/dossiers/${id}`)
       }
     }
@@ -159,14 +162,16 @@ export default async function DossierDetailPage({
           uploadedById: payload?.id as string,
         }
       })
-      await recordDossierEvent({
-        dossierId: id,
-        userId: payload?.id as string,
-        typeAction: 'DOCUMENT_AJOUTE',
-        resume: `Document "${fileName}" ajouté`,
-        action: 'DOCUMENT_UPLOADED',
-        metadata: { fileName, fileUrl },
-      })
+      const dossier = await prisma.dossier.findUnique({ where: { id }, select: { reference: true, createurUserId: true, responsableCSId: true, assignedToId: true } })
+      if (dossier) {
+        await notifyDossierStakeholders({
+          dossier,
+          title: `Nouveau document: ${dossier.reference}`,
+          message: `Le document "${fileName}" a été ajouté au dossier ${dossier.reference}.`,
+          type: 'DOCUMENT_AJOUTE',
+          link: `/dossiers/${id}`,
+        })
+      }
       revalidatePath(`/dossiers/${id}`)
     }
   }

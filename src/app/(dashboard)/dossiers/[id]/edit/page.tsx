@@ -9,6 +9,7 @@ import { ALLOWED_TRANSITIONS, PRIORITY_LABELS, STATUT_LABELS, getStatusLabel, no
 import { hasPermission } from '@/lib/auth/rbac'
 import { requirePermission } from '@/lib/auth/server'
 import { notifyDossierStakeholders, recordDossierEvent } from '@/lib/dossier-tracking'
+import { logActivity } from '@/lib/activity-log'
 
 export default async function EditDossierPage({
   params,
@@ -89,6 +90,13 @@ export default async function EditDossierPage({
               action: 'HISTORY_OVERRIDE',
               description: `Modifié date création dossier ${id} : ${dossier.createdAt.toISOString()} -> ${newDate.toISOString()}`
             }
+          })
+          await logActivity({
+            userId: payload?.id as string,
+            action: 'HISTORY_OVERRIDE_DATE',
+            entity: 'DOSSIER',
+            entityId: id,
+            metadata: { oldDate: dossier.createdAt, newDate },
           })
         }
       }

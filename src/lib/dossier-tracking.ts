@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma'
-import { logActivity } from '@/lib/activity-log'
 import { createNotifications } from '@/lib/notifications'
 import type { Prisma, TypeNotification, TypeActionDossier } from '@prisma/client'
 
@@ -45,34 +44,45 @@ export function getDossierStakeholderIds(
 }
 
 export async function recordDossierEvent(input: RecordDossierEventInput) {
-  const operations: Array<Promise<unknown>> = [
-    prisma.dossierActivite.create({
+  // 1. Mandatory dossier activity record (specific to this dossier)
+  try {
+    await prisma.dossierActivite.create({
       data: {
         dossierId: input.dossierId,
         userId: input.userId ?? null,
         typeAction: input.typeAction,
         resume: input.resume,
       },
-    }),
-    logActivity({
+    })
+  } catch (error) {
+    console.error('Failed to create dossier activity record:', error)
+  }
+
+  // 2. Global system activity log (resilient, must not block)
+  try {
+    const { logActivity } = await import('@/lib/activity-log')
+    await logActivity({
       userId: input.userId ?? null,
       action: input.action,
       entity: 'DOSSIER',
       entityId: input.dossierId,
       metadata: input.metadata,
-    }),
-  ]
+    })
+  } catch (error) {
+    console.warn('System activity log failed (non-blocking):', error)
+  }
 
+  // 3. Update last action timestamp on dossier
   if (input.updateLastAction !== false) {
-    operations.push(
-      prisma.dossier.update({
+    try {
+      await prisma.dossier.update({
         where: { id: input.dossierId },
         data: { dateDerniereAction: new Date() },
       })
-    )
+    } catch (error) {
+      console.error('Failed to update dossier last action timestamp:', error)
+    }
   }
-
-  await Promise.all(operations)
 }
 
 export async function notifyDossierStakeholders(input: NotifyDossierInput) {

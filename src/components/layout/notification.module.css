@@ -160,11 +160,26 @@
     border-radius: 0;
     border: none;
     box-shadow: none;
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .header {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
   }
 
   .list {
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
   }
 }
