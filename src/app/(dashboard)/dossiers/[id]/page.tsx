@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import type { StatutEtape } from '@prisma/client'
 import styles from './dossier-detail.module.css'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Calendar, User, MapPin, Edit, MessageSquare, UploadCloud, Activity } from 'lucide-react'
@@ -12,6 +13,31 @@ import DossierStatusControls from './DossierStatusControls'
 import StepEditModal from './StepEditModal'
 import { getDossierCapabilities } from '@/lib/auth/rbac'
 import { requirePermission } from '@/lib/auth/server'
+import { getPriorityLabel, getStatusLabel } from '@/lib/dossier-constants'
+
+type StepWithHistory = {
+  id: string
+  titre: string
+  description: string | null
+  statutEtape: string
+  stepDate: Date
+  correctedAt: Date | null
+  correctionReason: string | null
+  historique?: Array<{
+    changedBy?: {
+      nomAffiche: string
+    } | null
+  }>
+}
+
+type CommentWithAuthor = {
+  id: string
+  contenu: string
+  createdAt: Date
+  auteur: {
+    nomAffiche: string
+  }
+}
 
 export default async function DossierDetailPage({
   params,
@@ -28,6 +54,7 @@ export default async function DossierDetailPage({
 
   const includeParams: Prisma.DossierInclude = {
     responsableCS: true,
+    assignedTo: true,
     prestatairePrincipal: true,
     syndicImplique: true,
     responsableAction: true,
@@ -53,19 +80,11 @@ export default async function DossierDetailPage({
 
   if (!dossier) notFound()
 
-  const activityLogs = await prisma.dossierActivite.findMany({
-    where: { dossierId: id },
+  const activityLogs = await prisma.activityLog.findMany({
+    where: { entity: 'DOSSIER', entityId: id },
     orderBy: { createdAt: 'desc' },
-    include: { auteur: true }
+    include: { utilisateur: true }
   })
-
-  const getStatusLabel = (statut: string) => {
-    const m: Record<string, string> = {
-      ENREGISTRE: 'Enregistré', AFFECTE: 'Affecté', EN_COURS: 'En Cours',
-      A_VALIDER: 'À Valider', CLOTURE: 'Clôturé', BLOQUE: 'Bloqué', ARCHIVE: 'Archivé',
-    }
-    return m[statut] || statut
-  }
 
   async function addEtape(formData: FormData) {
     'use server'
@@ -80,9 +99,10 @@ export default async function DossierDetailPage({
           dossierId: id,
           titre,
           typeEtape: 'AUTRE',
-          statutEtape: status as any,
+          statutEtape: status as StatutEtape,
           auteurUserId: payload?.id as string,
           dateRealisation: status === 'TERMINEE' ? new Date() : null,
+          stepDate: new Date(),
         }
       })
       await prisma.dossierActivite.create({
@@ -140,10 +160,23 @@ export default async function DossierDetailPage({
   }
 
   const getPriorityBadgeClass = (p: string) => {
-    switch(p) { case 'CRITIQUE': return 'badge-urgent'; case 'HAUTE': return 'badge-high'; case 'MOYENNE': return 'badge-normal'; default: return 'badge-low'; }
+    switch (p) {
+      case 'URGENT':
+      case 'CRITIQUE':
+        return 'badge-urgent'
+      case 'HIGH':
+      case 'HAUTE':
+        return 'badge-high'
+      case 'MEDIUM':
+      case 'MOYENNE':
+        return 'badge-normal'
+      default:
+        return 'badge-low'
+    }
   }
 
   const formatDate = (date: Date) => new Date(date).toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  const commentaires = ((dossier.commentaires || []) as unknown) as CommentWithAuthor[]
 
   return (
     <div>
@@ -155,7 +188,7 @@ export default async function DossierDetailPage({
           <h1>{dossier.titre}</h1>
           <div className={styles.badges}>
             <span className="badge" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{dossier.reference}</span>
-            <span className={`badge ${getPriorityBadgeClass(dossier.priorite)}`}>Priorité {dossier.priorite}</span>
+            <span className={`badge ${getPriorityBadgeClass(dossier.priorite)}`}>Priorité {getPriorityLabel(dossier.priorite)}</span>
             <span className="badge" style={{ background: 'var(--primary)', color: 'white' }}>{getStatusLabel(dossier.statut)}</span>
           </div>
         </div>
@@ -166,7 +199,7 @@ export default async function DossierDetailPage({
               dossierId={id}
               isAdmin={isAdmin}
               isArchived={dossier.archived}
-              counts={{ etapes: dossier.etapes.length, commentaires: dossier.commentaires.length, documents: dossier.documents.length }}
+              counts={{ etapes: dossier.etapes.length, commentaires: commentaires.length, documents: dossier.documents.length }}
             />
           </div>
         )}
@@ -214,6 +247,12 @@ export default async function DossierDetailPage({
                 </span>
               </div>
               <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Assigné à</span>
+                <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <User size={16} color="var(--text-secondary)" /> {dossier.assignedTo?.nomAffiche || dossier.responsableCS?.nomAffiche || 'Non assigné'}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Prestataire / Intervenant</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <User size={16} color="var(--text-secondary)" />
@@ -245,7 +284,7 @@ export default async function DossierDetailPage({
             <h2 className={styles.cardTitle}>Chronologie des étapes</h2>
             {dossier.etapes.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucune étape enregistrée.</p> : (
               <div className={styles.timeline}>
-                {dossier.etapes.map((etape: any) => (
+                {(dossier.etapes as StepWithHistory[]).map((etape) => (
                   <div key={etape.id} className={styles.timelineItem}>
                     <div className={styles.timelineDot}></div>
                     <div className={styles.timelineContent}>
@@ -260,7 +299,7 @@ export default async function DossierDetailPage({
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <span className={styles.timelineDate}>{formatDate(etape.stepDate)}</span>
-                          {capabilities.canEdit && (
+                          {capabilities.canUpdateStep && (
                             <StepEditModal 
                               dossierId={id} 
                               etapeId={etape.id} 
@@ -301,7 +340,7 @@ export default async function DossierDetailPage({
             <div className="card">
               <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MessageSquare size={18} /> Commentaires internes</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-                {(dossier.commentaires || []).map((c: any) => (
+                {commentaires.map((c) => (
                   <div key={c.id} style={{ background: 'var(--bg-color)', padding: 16, borderRadius: 'var(--radius-md)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
                       <strong style={{ color: 'var(--text-primary)' }}>{c.auteur.nomAffiche}</strong> <span>{formatDate(c.createdAt)}</span>
@@ -326,7 +365,7 @@ export default async function DossierDetailPage({
             <h2 className={styles.cardTitle}>Documents Joints</h2>
             <div style={{ marginBottom: 16 }}>
               {dossier.documents.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucun document.</p> : (
-                dossier.documents.map((doc: any) => (
+                dossier.documents.map((doc) => (
                   <div key={doc.id} className={styles.documentItem}>
                     <FileText className={styles.documentIcon} size={24} />
                     <div className={styles.documentName}>{doc.titre}</div>
@@ -350,10 +389,12 @@ export default async function DossierDetailPage({
             <h2 className={styles.cardTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Activity size={18} /> Journal d&apos;Activité</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {activityLogs.length === 0 ? <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Aucune activité.</p> : (
-                activityLogs.map((log: any) => (
+                activityLogs.map((log) => (
                   <div key={log.id} style={{ fontSize: 12, paddingBottom: 12, borderBottom: '1px solid var(--border-color)' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.resume}</div>
-                    <div style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Par {log.auteur?.nomAffiche || 'Système'} le {formatDate(log.createdAt)}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.action}</div>
+                    <div style={{ color: 'var(--text-secondary)', marginTop: 4 }}>
+                      Par {log.utilisateur?.nomAffiche || 'Système'} le {formatDate(log.createdAt)}
+                    </div>
                   </div>
                 ))
               )}

@@ -1,11 +1,23 @@
-export function isOverdue(dossier: any): boolean {
+import { normalizeDossierPriority, normalizeDossierStatus } from '@/lib/dossier-constants'
+
+type DossierPriorityLike = {
+  dateEcheance?: Date | string | null
+  updatedAt?: Date | string | null
+  statut?: string | null
+  priorite?: string | null
+  assignedToId?: string | null
+  responsableActionId?: string | null
+  responsableCSId?: string | null
+}
+
+export function isOverdue(dossier: DossierPriorityLike): boolean {
   if (!dossier.dateEcheance) return false
   const dueDate = new Date(dossier.dateEcheance)
   const today = new Date()
   return dueDate < today
 }
 
-export function isNearDeadline(dossier: any, daysTotal = 7): boolean {
+export function isNearDeadline(dossier: DossierPriorityLike, daysTotal = 7): boolean {
   if (!dossier.dateEcheance) return false
   const dueDate = new Date(dossier.dateEcheance)
   const today = new Date()
@@ -14,7 +26,7 @@ export function isNearDeadline(dossier: any, daysTotal = 7): boolean {
   return diffDays >= 0 && diffDays <= daysTotal
 }
 
-export function isInactive(dossier: any, daysInactive = 7): boolean {
+export function isInactive(dossier: DossierPriorityLike, daysInactive = 7): boolean {
   if (!dossier.updatedAt) return false
   const lastUpdate = new Date(dossier.updatedAt)
   const today = new Date()
@@ -23,39 +35,41 @@ export function isInactive(dossier: any, daysInactive = 7): boolean {
   return diffDays >= daysInactive
 }
 
-export function computePriority(dossier: any): 'CRITIQUE' | 'HAUTE' | 'NORMALE' | 'FAIBLE' {
+export function computePriority(dossier: DossierPriorityLike): 'CRITIQUE' | 'HAUTE' | 'NORMALE' | 'FAIBLE' {
+  const status = normalizeDossierStatus(dossier.statut)
+  const priority = normalizeDossierPriority(dossier.priorite)
   const overdue = isOverdue(dossier)
-  const blocked = dossier.statut === 'BLOQUE'
-  const actionRequired = dossier.statut === 'A_VALIDER' || dossier.statut === 'ENREGISTRE'
+  const blocked = status === 'WAITING'
+  const actionRequired = status === 'RESOLVED' || status === 'OPEN'
   const nearDeadline = isNearDeadline(dossier)
 
-  if (overdue || blocked || (dossier.priorite === 'CRITIQUE' && nearDeadline)) {
+  if (overdue || blocked || (priority === 'URGENT' && nearDeadline)) {
     return 'CRITIQUE'
   }
 
-  if (nearDeadline || actionRequired || dossier.priorite === 'HAUTE') {
+  if (nearDeadline || actionRequired || priority === 'HIGH') {
     return 'HAUTE'
   }
 
-  if (dossier.statut === 'EN_COURS' || dossier.priorite === 'MOYENNE') {
+  if (status === 'IN_PROGRESS' || priority === 'MEDIUM') {
     return 'NORMALE'
   }
 
   return 'FAIBLE'
 }
 
-export function getAlerts(dossier: any): string[] {
+export function getAlerts(dossier: DossierPriorityLike): string[] {
   const alerts: string[] = []
   
   if (isOverdue(dossier)) {
     alerts.push('Overdue')
   }
   
-  if (dossier.statut === 'BLOQUE') {
+  if (normalizeDossierStatus(dossier.statut) === 'WAITING') {
     alerts.push('Blocked')
   }
   
-  if (!dossier.responsableActionId && !dossier.responsableCSId) {
+  if (!dossier.assignedToId && !dossier.responsableActionId && !dossier.responsableCSId) {
     alerts.push('Unassigned')
   }
 

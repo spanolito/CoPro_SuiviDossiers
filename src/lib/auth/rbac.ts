@@ -88,5 +88,7 @@ export function getDossierCapabilities(role: UserRole | string | undefined) {
     canCommentInternal: hasPermission(role, 'dossier.comment.internal'),
     canAddDocument: hasPermission(role, 'dossier.document.add'),
     canAddStep: hasPermission(role, 'dossier.step.add'),
+    canUpdateStep: hasPermission(role, 'dossier.step.update'),
+    canOverrideHistory: hasPermission(role, 'dossier.history.override'),
   };
 }

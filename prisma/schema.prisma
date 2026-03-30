@@ -88,6 +88,11 @@ enum StatutDossier {
   CLOTURE
   BLOQUE
   ARCHIVE
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
 }
 
 enum PrioriteDossier {
@@ -95,6 +100,10 @@ enum PrioriteDossier {
   MOYENNE
   HAUTE
   CRITIQUE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum NiveauRisque {
@@ -142,6 +151,7 @@ enum TypeActionDossier {
   DOSSIER_CREE
   DOSSIER_MODIFIE
   STATUT_CHANGE
+  ASSIGNATION_CHANGE
   RESPONSABLE_CS_CHANGE
   PRESTATAIRE_CHANGE
   SYNDIC_CHANGE
@@ -210,6 +220,9 @@ enum TypeNotification {
   DOSSIER_CREE
   DOSSIER_EN_COURS
   DOSSIER_RESOLU
+  DOSSIER_ASSIGNED
+  DOSSIER_STATUS_CHANGED
+  ETAPE_UPDATED
   LOG_SYSTEME
 }
 
@@ -391,12 +404,15 @@ model Utilisateur {
 
   dossiersCrees        Dossier[]            @relation("DossierCreateur")
   dossiersResponsableCS Dossier[]           @relation("DossierResponsableCS")
+  dossiersAssigned     Dossier[]            @relation("DossierAssignee")
   dossiersValides      Dossier[]            @relation("DossierValidateurFinal")
   dossiersClotures     Dossier[]            @relation("DossierCloturePar")
   dossiersArchives     Dossier[]            @relation("DossierArchivePar")
 
   etapesAuteur         DossierEtape[]
+  etapesCorrigees      DossierEtape[]       @relation("DossierEtapeCorrector")
   activitesAuteur      DossierActivite[]
+  activityLogs         ActivityLog[]        @relation("ActivityLogActor")
   commentairesAuteur   DossierCommentaire[]
   documentsUploades    Document[]
   notifications        Notification[]
@@ -499,6 +515,7 @@ model Dossier {
   dateEcheance             DateTime?
 
   responsableCSId          String
+  assignedToId             String?
   createurUserId           String
   validateurFinalId        String?
   clotureParUserId         String?
@@ -536,6 +553,7 @@ model Dossier {
   copropriete          Copropriete    @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
   createur             Utilisateur    @relation("DossierCreateur", fields: [createurUserId], references: [id], onDelete: Restrict)
   responsableCS        Utilisateur    @relation("DossierResponsableCS", fields: [responsableCSId], references: [id], onDelete: Restrict)
+  assignedTo           Utilisateur?   @relation("DossierAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   validateurFinal      Utilisateur?   @relation("DossierValidateurFinal", fields: [validateurFinalId], references: [id], onDelete: SetNull)
   cloturePar           Utilisateur?   @relation("DossierCloturePar", fields: [clotureParUserId], references: [id], onDelete: SetNull)
   archivePar           Utilisateur?   @relation("DossierArchivePar", fields: [archivedById], references: [id], onDelete: SetNull)
@@ -564,6 +582,7 @@ model Dossier {
   @@index([statut])
   @@index([typeDossier])
   @@index([responsableCSId])
+  @@index([assignedToId])
   @@index([prestatairePrincipalId])
   @@index([syndicImpliqueId])
   @@index([lotId])
@@ -610,6 +629,7 @@ model DossierEtape {
 
   dossier     Dossier      @relation(fields: [dossierId], references: [id], onDelete: Cascade)
   auteur      Utilisateur  @relation(fields: [auteurUserId], references: [id], onDelete: Restrict)
+  correctedBy Utilisateur? @relation("DossierEtapeCorrector", fields: [correctedById], references: [id], onDelete: SetNull)
   intervenant Intervenant? @relation(fields: [intervenantId], references: [id], onDelete: SetNull)
   historique  DossierEtapeHistory[]
 
@@ -621,14 +641,14 @@ model DossierEtape {
 model DossierEtapeHistory {
   id           String      @id @default(cuid())
   etapeId      String
-  oldDate      DateTime
-  newDate      DateTime
+  oldDate      DateTime?
+  newDate      DateTime?
   reason       String?
-  changedById  String
+  changedById  String?
   changedAt    DateTime    @default(now())
 
   etape        DossierEtape @relation(fields: [etapeId], references: [id], onDelete: Cascade)
-  changedBy    Utilisateur  @relation(fields: [changedById], references: [id], onDelete: Restrict)
+  changedBy    Utilisateur? @relation(fields: [changedById], references: [id], onDelete: SetNull)
 
   @@index([etapeId])
   @@index([changedById])
@@ -736,6 +756,22 @@ model Document {
   @@index([coproprieteId])
   @@index([dossierId])
   @@index([typeDocument])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  utilisateur Utilisateur? @relation("ActivityLogActor", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
 }
 
 model Notification {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { signToken } from '@/lib/auth'
+import { getSessionCookieOptions, signToken } from '@/lib/auth'
 import { notifyAdmins } from '@/lib/notifications'
 
 export async function POST(request: NextRequest) {
@@ -55,11 +55,7 @@ export async function POST(request: NextRequest) {
     response.cookies.set({
       name: 'auth_token',
       value: token,
-      httpOnly: true,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24,
-      sameSite: 'lax',
+      ...getSessionCookieOptions(),
     })
 
     // Update last login

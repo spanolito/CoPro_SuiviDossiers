@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import type { Dossier, Prisma, PrioriteDossier, StatutDossier } from '@prisma/client'
 import styles from './dossiers.module.css'
 import Link from 'next/link'
 import { Plus, ArrowRight } from 'lucide-react'
@@ -6,6 +7,7 @@ import DossierFilters from '@/components/dossiers/DossierFilters'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import { hasPermission } from '@/lib/auth/rbac'
+import { getPriorityLabel, getPriorityValues, getStatusLabel, getStatusValues, normalizeDossierPriority, normalizeDossierStatus } from '@/lib/dossier-constants'
 
 export default async function DossiersListPage({
   searchParams,
@@ -20,7 +22,7 @@ export default async function DossiersListPage({
   const payload = token ? await verifyToken(token) : null
   const canCreate = hasPermission(payload?.role as string, 'dossier.create')
 
-  const whereClause: any = {}
+  const whereClause: Prisma.DossierWhereInput = {}
   if (q) {
     whereClause.OR = [
       { titre: { contains: q, mode: 'insensitive' } },
@@ -28,14 +30,12 @@ export default async function DossiersListPage({
     ]
   }
   if (status) {
-    const statusArray = status.split(',')
-    if (statusArray.length > 1) {
-      whereClause.statut = { in: statusArray }
-    } else {
-      whereClause.statut = status
-    }
+    const statusValues = status.split(',').flatMap((value) => getStatusValues(value)) as StatutDossier[]
+    whereClause.statut = { in: statusValues }
   }
-  if (priority) whereClause.priorite = priority
+  if (priority) {
+    whereClause.priorite = { in: getPriorityValues(priority) as PrioriteDossier[] }
+  }
 
   if (activeFilter === 'archived') {
     whereClause.archived = true
@@ -47,40 +47,26 @@ export default async function DossiersListPage({
 
   const dossiers = await prisma.dossier.findMany({
     where: whereClause,
-    include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true, responsableAction: true },
+    include: { responsableCS: true, assignedTo: true, prestatairePrincipal: true, syndicImplique: true, responsableAction: true },
     orderBy: { updatedAt: 'desc' }
   })
 
-  const getPriorityLabel = (p: string) => {
-    const labels: Record<string, string> = { CRITIQUE: 'Critique', HAUTE: 'Haute', MOYENNE: 'Moyenne', BASSE: 'Basse' }
-    return labels[p] || p
-  }
-
   const getPriorityBadgeClass = (p: string) => {
-    switch(p) {
-      case 'CRITIQUE': return 'badge-urgent'
-      case 'HAUTE': return 'badge-high'
-      case 'MOYENNE': return 'badge-normal'
+    switch (normalizeDossierPriority(p)) {
+      case 'URGENT': return 'badge-urgent'
+      case 'HIGH': return 'badge-high'
+      case 'MEDIUM': return 'badge-normal'
       default: return 'badge-low'
     }
   }
 
-  const getStatusLabel = (statut: string) => {
-    const labels: Record<string, string> = {
-      ENREGISTRE: 'Enregistré', AFFECTE: 'Affecté', EN_COURS: 'En Cours',
-      A_VALIDER: 'À Valider', CLOTURE: 'Clôturé', BLOQUE: 'Bloqué', ARCHIVE: 'Archivé'
-    }
-    return labels[statut] || statut
-  }
-
   const getStatusBadgeClass = (statut: string) => {
-    switch(statut) {
-      case 'ENREGISTRE': return 'badge-neutral'
-      case 'AFFECTE': return 'badge-info'
-      case 'EN_COURS': return 'badge-primary'
-      case 'A_VALIDER': return 'badge-warning'
-      case 'CLOTURE': return 'badge-success'
-      case 'BLOQUE': return 'badge-bloque'
+    switch (normalizeDossierStatus(statut)) {
+      case 'OPEN': return 'badge-neutral'
+      case 'IN_PROGRESS': return 'badge-primary'
+      case 'WAITING': return 'badge-warning'
+      case 'RESOLVED': return 'badge-info'
+      case 'CLOSED': return 'badge-success'
       case 'ARCHIVE': return 'badge-neutral'
       default: return 'badge-neutral'
     }
@@ -126,7 +112,7 @@ export default async function DossiersListPage({
               <th>Type</th>
               <th>Statut</th>
               <th>Priorité</th>
-              <th>Responsable CS</th>
+              <th>Assigné à</th>
               <th style={{ textAlign: 'right', paddingRight: '16px' }}>Actions</th>
             </tr>
           </thead>
@@ -136,11 +122,11 @@ export default async function DossiersListPage({
                 <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-secondary)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontSize: '16px', fontWeight: 600 }}>Aucun dossier trouvé</div>
-                    <p style={{ fontSize: '14px' }}>Essayez d'ajuster vos filtres de recherche.</p>
+                    <p style={{ fontSize: '14px' }}>Essayez d&apos;ajuster vos filtres de recherche.</p>
                   </div>
                 </td>
               </tr>
-            ) : dossiers.map((d: any) => (
+            ) : dossiers.map((d: Dossier & { assignedTo: { nomAffiche: string } | null; responsableCS: { nomAffiche: string } | null; prestatairePrincipal: { nom: string } | null; syndicImplique: { nom: string } | null; responsableAction: { nom: string } | null }) => (
               <tr key={d.id} style={{ cursor: 'pointer' }}>
                 <td data-label="Réf.">
                   <Link href={`/dossiers/${d.id}`} className={styles.linkCell} style={{ fontWeight: 600 }}>
@@ -177,7 +163,9 @@ export default async function DossiersListPage({
                 </td>
                 <td data-label="Responsable">
                   <Link href={`/dossiers/${d.id}`} className={styles.linkCell}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{d.responsableCS?.nomAffiche || '-'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
+                      {d.assignedTo?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
+                    </div>
                   </Link>
                 </td>
                 <td data-label="Actions" className={styles.actionsCell}>

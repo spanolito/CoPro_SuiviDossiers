@@ -3,26 +3,12 @@ import styles from './dashboard.module.css'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2, CircleDot, Clock, LayoutGrid, PauseCircle, Users, Calendar } from 'lucide-react'
 import ClickableRow from '@/components/ui/ClickableRow'
-import { computePriority, isOverdue, getAlerts } from '@/lib/utils/priority'
+import { computePriority, getAlerts, isInactive, isOverdue } from '@/lib/utils/priority'
 import AlertsCard from '@/components/dashboard/AlertsCard'
-import { FileText } from 'lucide-react'
-import type { StaticImageData } from 'next/image'
+import { getPriorityLabel, getStatusLabel, normalizeDossierStatus } from '@/lib/dossier-constants'
 
 
 const getInitials = (name: string) => name.substring(0, 2).toUpperCase()
-
-const getPriorityLabel = (p: string) => {
-  const labels: Record<string, string> = { CRITIQUE: 'Critique', HAUTE: 'Haute', MOYENNE: 'Moyenne', BASSE: 'Basse' }
-  return labels[p] || p
-}
-
-const getStatusLabel = (s: string) => {
-  const labels: Record<string, string> = {
-    ENREGISTRE: 'Enregistré', AFFECTE: 'Affecté', EN_COURS: 'En Cours',
-    A_VALIDER: 'À Valider', CLOTURE: 'Clôturé', BLOQUE: 'Bloqué'
-  }
-  return labels[s] || s
-}
 
 const EmptyState = ({ message }: { message: string }) => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', color: 'var(--text-secondary)', gap: '8px' }}>
@@ -31,10 +17,26 @@ const EmptyState = ({ message }: { message: string }) => (
   </div>
 )
 
+type AlertType = 'RETARD' | 'BLOQUE' | 'NON_ASSIGNE' | 'INACTIF'
+
+function mapAlertType(type: string): AlertType {
+  switch (type.toUpperCase()) {
+    case 'OVERDUE':
+      return 'RETARD'
+    case 'BLOCKED':
+      return 'BLOQUE'
+    case 'UNASSIGNED':
+      return 'NON_ASSIGNE'
+    default:
+      return 'INACTIF'
+  }
+}
+
 export default async function DashboardPage() {
+  const inactivityThreshold = 7
   const [dossiers, users, intervenants, activityLogs] = await Promise.all([
     prisma.dossier.findMany({
-      include: { responsableCS: true, prestatairePrincipal: true, syndicImplique: true },
+      include: { responsableCS: true, assignedTo: true, prestatairePrincipal: true, syndicImplique: true },
       where: { archived: false }
     }),
     prisma.utilisateur.findMany({
@@ -45,37 +47,40 @@ export default async function DashboardPage() {
       where: { actif: true },
       include: { dossiersPrestataire: true, dossiersSyndic: true, dossiersAction: true }
     }),
-    prisma.dossierActivite.findMany({
+    prisma.activityLog.findMany({
       take: 6,
       orderBy: { createdAt: 'desc' },
-      include: { auteur: true }
+      include: { utilisateur: true }
     })
   ])
 
   // alerts
-  const alerts: any[] = []
-  dossiers.forEach((d: any) => {
+  const alerts: Array<{ id: string; titre: string; reference: string; type: AlertType }> = []
+  dossiers.forEach((d) => {
     const items = getAlerts(d)
-    items.forEach((type: string) => {
+    items.forEach((type) => {
       alerts.push({
         id: d.id,
         titre: d.titre,
         reference: d.reference,
-        type: type.toUpperCase() as any
+        type: mapAlertType(type)
       })
     })
   })
 
-  const countUrgent = dossiers.filter((d: any) => computePriority(d) === 'CRITIQUE' && d.statut !== 'CLOTURE').length
-  const countEnAttente = dossiers.filter((d: any) => d.statut === 'ENREGISTRE' || d.statut === 'AFFECTE').length
-  const countEnCours = dossiers.filter((d: any) => d.statut === 'EN_COURS' || d.statut === 'A_VALIDER').length
-  const countBlocked = dossiers.filter((d: any) => d.statut === 'BLOQUE').length
-  const countClosed = dossiers.filter((d: any) => d.statut === 'CLOTURE').length
+  const countOpen = dossiers.filter((d) => {
+    const status = normalizeDossierStatus(d.statut)
+    return status !== 'CLOSED' && status !== 'ARCHIVE'
+  }).length
+  const countUrgent = dossiers.filter((d) => computePriority(d) === 'CRITIQUE' && normalizeDossierStatus(d.statut) !== 'CLOSED').length
+  const countWaiting = dossiers.filter((d) => normalizeDossierStatus(d.statut) === 'WAITING').length
+  const countResolved = dossiers.filter((d) => normalizeDossierStatus(d.statut) === 'RESOLVED').length
+  const countInactive = dossiers.filter((d) => isInactive(d, inactivityThreshold) && normalizeDossierStatus(d.statut) !== 'CLOSED').length
 
   const prioritizedDossiers = dossiers
-    .map((d: any) => ({ ...d, computedPriority: computePriority(d) }))
-    .filter((d: any) => d.computedPriority !== 'FAIBLE' && d.statut !== 'CLOTURE')
-    .sort((a: any, b: any) => {
+    .map((d) => ({ ...d, computedPriority: computePriority(d) }))
+    .filter((d) => d.computedPriority !== 'FAIBLE' && normalizeDossierStatus(d.statut) !== 'CLOSED')
+    .sort((a, b) => {
       const priorityOrder: Record<'CRITIQUE' | 'HAUTE' | 'NORMALE' | 'FAIBLE', number> = { CRITIQUE: 0, HAUTE: 1, NORMALE: 2, FAIBLE: 3 }
       const orderA = priorityOrder[a.computedPriority as keyof typeof priorityOrder]
       const orderB = priorityOrder[b.computedPriority as keyof typeof priorityOrder]
@@ -91,24 +96,15 @@ export default async function DashboardPage() {
     .slice(0, 7);
 
 
-  const getReasonBadge = (d: any) => {
-    if (d.statut === 'BLOQUE') return <span className="badge badge-bloque">Bloqué</span>
-    if (d.computedPriority === 'CRITIQUE') return <span className="badge badge-urgent">Critique</span>
-    if (d.statut === 'A_VALIDER') return <span className="badge badge-warning">À Valider</span>
-    if (!d.responsableCSId) return <span className="badge badge-neutral">Non assigné</span>
-    return null
-  }
-
-
-  const staffBreakdown = users.map((u: any) => ({
+  const staffBreakdown = users.map((u) => ({
     name: u.nomAffiche,
-    count: u.dossiersResponsableCS.filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
-  })).sort((a: any, b: any) => b.count - a.count)
+    count: u.dossiersResponsableCS.filter((d) => normalizeDossierStatus(d.statut) !== 'CLOSED' && !d.archived).length
+  })).sort((a, b) => b.count - a.count)
 
-  const intervenantsBreakdown = intervenants.map((i: any) => ({
+  const intervenantsBreakdown = intervenants.map((i) => ({
     name: i.nom,
-    count: [...i.dossiersPrestataire, ...i.dossiersSyndic, ...i.dossiersAction].filter((d: any) => d.statut !== 'CLOTURE' && !d.archived).length
-  })).sort((a: any, b: any) => b.count - a.count).filter((x: any) => x.count > 0)
+    count: [...i.dossiersPrestataire, ...i.dossiersSyndic, ...i.dossiersAction].filter((d) => normalizeDossierStatus(d.statut) !== 'CLOSED' && !d.archived).length
+  })).sort((a, b) => b.count - a.count).filter((x) => x.count > 0)
 
   const formatTime = (date: Date) => {
     const min = Math.floor((new Date().getTime() - new Date(date).getTime()) / 60000)
@@ -122,40 +118,40 @@ export default async function DashboardPage() {
     <div style={{ paddingBottom: 40 }}>
       {/* 1. Vue Rapide / Metrics */}
       <div className={styles.metricsRow}>
-        <Link href="/dossiers?priority=CRITIQUE" className={styles.metricCard} style={{ borderTopColor: 'var(--urgent-text)' }}>
+        <Link href="/dossiers?status=OPEN,IN_PROGRESS,WAITING,RESOLVED" className={styles.metricCard} style={{ borderTopColor: 'var(--primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className={styles.metricTitle}>Ouverts</span>
+            <LayoutGrid size={18} color="var(--primary)" />
+          </div>
+          <span className={styles.metricValue}>{countOpen}</span>
+        </Link>
+        <Link href="/dossiers?priority=URGENT" className={styles.metricCard} style={{ borderTopColor: 'var(--urgent-text)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>Urgents</span>
             <AlertCircle size={18} color="var(--urgent-text)" />
           </div>
           <span className={styles.metricValue} style={{ color: 'var(--urgent-text)' }}>{countUrgent}</span>
         </Link>
-        <Link href="/dossiers?status=ENREGISTRE,AFFECTE" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
+        <Link href="/dossiers?status=WAITING" className={styles.metricCard} style={{ borderTopColor: 'var(--warning)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className={styles.metricTitle}>En attente</span>
             <Clock size={18} color="var(--warning)" />
           </div>
-          <span className={styles.metricValue}>{countEnAttente}</span>
+          <span className={styles.metricValue}>{countWaiting}</span>
         </Link>
-        <Link href="/dossiers?status=EN_COURS,A_VALIDER" className={styles.metricCard} style={{ borderTopColor: 'var(--primary)' }}>
+        <Link href="/dossiers?status=RESOLVED" className={styles.metricCard} style={{ borderTopColor: 'var(--success)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className={styles.metricTitle}>En cours</span>
-            <Clock size={18} color="var(--primary)" />
-          </div>
-          <span className={styles.metricValue}>{countEnCours}</span>
-        </Link>
-        <Link href="/dossiers?status=BLOQUE" className={styles.metricCard} style={{ borderTopColor: 'var(--bloque-text)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className={styles.metricTitle}>Bloqués</span>
-            <PauseCircle size={18} color="var(--bloque-text)" />
-          </div>
-          <span className={styles.metricValue} style={{ color: 'var(--bloque-text)' }}>{countBlocked}</span>
-        </Link>
-        <Link href="/dossiers?status=CLOTURE" className={styles.metricCard} style={{ borderTopColor: 'var(--success)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className={styles.metricTitle}>Clôturés</span>
+            <span className={styles.metricTitle}>Résolus</span>
             <CheckCircle2 size={18} color="var(--success)" />
           </div>
-          <span className={styles.metricValue}>{countClosed}</span>
+          <span className={styles.metricValue}>{countResolved}</span>
+        </Link>
+        <Link href="/dossiers" className={styles.metricCard} style={{ borderTopColor: 'var(--bloque-text)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className={styles.metricTitle}>Sans activité</span>
+            <PauseCircle size={18} color="var(--bloque-text)" />
+          </div>
+          <span className={styles.metricValue} style={{ color: 'var(--bloque-text)' }}>{countInactive}</span>
         </Link>
       </div>
 
@@ -189,7 +185,7 @@ export default async function DashboardPage() {
                 <tbody>
                   {prioritizedDossiers.length === 0 ? (
                     <tr><td colSpan={5} style={{ padding: 0 }}><EmptyState message="Aucune action prioritized requise." /></td></tr>
-                  ) : prioritizedDossiers.map((d: any) => (
+                  ) : prioritizedDossiers.map((d) => (
                     <ClickableRow key={d.id} href={`/dossiers/${d.id}`}>
                       <td data-label="Dossier">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -208,7 +204,7 @@ export default async function DashboardPage() {
                       </td>
                       <td data-label="Responsable">
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', maxWidth: '140px' }}>
-                          {d.responsableCS?.nomAffiche || '-'}
+                          {d.assignedTo?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
                         </span>
                       </td>
                       <td data-label="Échéance">
@@ -232,15 +228,15 @@ export default async function DashboardPage() {
             <div className={styles.timelineStream}>
               {activityLogs.length === 0 ? (
                 <EmptyState message="Aucune activité récente." />
-              ) : activityLogs.map((log: any) => (
+              ) : activityLogs.map((log) => (
                 <div key={log.id} className={styles.timelineItem}>
                   <div className={styles.timelineDot} style={{
-                    backgroundColor: log.resume?.includes('détecté') || log.resume?.includes('cree') ? 'var(--info)' :
-                      log.resume?.includes('bloqué') ? 'var(--danger-text)' : 'var(--primary)'
+                    backgroundColor: log.action?.includes('CREATED') ? 'var(--info)' :
+                      log.action?.includes('WAIT') ? 'var(--danger-text)' : 'var(--primary)'
                   }}></div>
                   <div className={styles.timelineContent}>
-                    <span className={styles.timelineText}>{log.resume}</span>
-                    <span className={styles.timelineTime}>{log.auteur?.nomAffiche} · {formatTime(log.createdAt)}</span>
+                    <span className={styles.timelineText}>{log.action}</span>
+                    <span className={styles.timelineTime}>{log.utilisateur?.nomAffiche || 'Système'} · {formatTime(log.createdAt)}</span>
                   </div>
                 </div>
               ))}
@@ -256,7 +252,7 @@ export default async function DashboardPage() {
             <div className={styles.assigneeList}>
               {staffBreakdown.length === 0 ? (
                 <EmptyState message="Aucun membre actif." />
-              ) : staffBreakdown.map((staff: any, index: number) => (
+              ) : staffBreakdown.map((staff, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar}>{getInitials(staff.name)}</div>
@@ -273,7 +269,7 @@ export default async function DashboardPage() {
             <div className={styles.assigneeList}>
               {intervenantsBreakdown.length === 0 ? (
                 <EmptyState message="Aucun intervenant administratif." />
-              ) : intervenantsBreakdown.map((intv: any, index: number) => (
+              ) : intervenantsBreakdown.map((intv, index: number) => (
                 <div key={index} className={styles.assigneeItem}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div className={styles.avatar} style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>{getInitials(intv.name)}</div>

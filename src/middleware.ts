@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyToken, signToken } from '@/lib/auth'
+import { getSessionCookieOptions, SESSION_MAX_AGE, signToken, verifyToken } from '@/lib/auth'
 
 function addSecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'DENY')
@@ -63,23 +63,20 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // Auto refresh session if remaining time is less than 12 hours
-  if (payload.exp && (payload.exp as number) - (Date.now() / 1000) < 12 * 60 * 60) {
+  // Refresh the session when the user is active and less than 24h remain.
+  if (payload.exp && (payload.exp as number) - (Date.now() / 1000) < 24 * 60 * 60) {
     const newToken = await signToken({
-      id: payload.id,
-      email: payload.email,
-      role: payload.role,
-      name: payload.name,
+      id: payload.id as string,
+      email: payload.email as string,
+      role: payload.role as string,
+      name: payload.name as string,
     })
     
     response.cookies.set({
       name: 'auth_token',
       value: newToken,
-      httpOnly: true,
-      path: '/',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24, // 1 day
-      sameSite: 'lax',
+      ...getSessionCookieOptions(),
+      maxAge: SESSION_MAX_AGE,
     })
   }
 

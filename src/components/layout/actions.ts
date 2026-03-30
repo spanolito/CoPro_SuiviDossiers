@@ -1,27 +1,30 @@
 'use server'
 
-import prisma from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth/server'
+import { getNotificationsForUser, getUnreadNotificationCount, markAsRead as markNotificationAsRead } from '@/lib/notifications'
 
 export async function getMyNotifications() {
   const payload = await requireAuth()
+  const userId = payload.id as string
+  const [notifications, unreadCount] = await Promise.all([
+    getNotificationsForUser(userId, 20),
+    getUnreadNotificationCount(userId),
+  ])
 
-  return await prisma.notification.findMany({
-    where: { userId: payload.id as string },
-    orderBy: { createdAt: 'desc' },
-    take: 10
-  })
+  return {
+    unreadCount,
+    notifications: notifications.map((notification) => ({
+      id: notification.id,
+      title: notification.titre,
+      message: notification.message,
+      read: notification.lu,
+      createdAt: notification.createdAt,
+      link: notification.lien,
+    })),
+  }
 }
 
 export async function markAsRead(notificationId: string) {
   const payload = await requireAuth()
-
-  // On utilise updateMany pour pouvoir filtrer par userId et garantir l'ownership
-  await prisma.notification.updateMany({
-    where: { 
-      id: notificationId,
-      userId: payload.id as string
-    },
-    data: { lu: true, luAt: new Date() }
-  })
+  await markNotificationAsRead(payload.id as string, notificationId)
 }

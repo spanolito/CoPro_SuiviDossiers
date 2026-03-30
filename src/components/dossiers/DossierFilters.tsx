@@ -102,14 +102,11 @@ export default function DossierFilters({
           }}
         >
           <option value="">Tous les statuts</option>
-          <option value="ENREGISTRE,AFFECTE">En attente</option>
-          <option value="EN_COURS,A_VALIDER">En cours</option>
-          <option value="ENREGISTRE">Enregistré</option>
-          <option value="AFFECTE">Affecté</option>
-          <option value="EN_COURS">En Cours</option>
-          <option value="A_VALIDER">À Valider</option>
-          <option value="CLOTURE">Clôturé</option>
-          <option value="BLOQUE">Bloqué</option>
+          <option value="OPEN">Ouvert</option>
+          <option value="IN_PROGRESS">En cours</option>
+          <option value="WAITING">En attente</option>
+          <option value="RESOLVED">Résolu</option>
+          <option value="CLOSED">Fermé</option>
         </select>
       </div>
 
@@ -127,10 +124,10 @@ export default function DossierFilters({
           }}
         >
           <option value="">Toutes les priorités</option>
-          <option value="CRITIQUE">Critique</option>
-          <option value="HAUTE">Haute</option>
-          <option value="MOYENNE">Moyenne</option>
-          <option value="BASSE">Basse</option>
+          <option value="URGENT">Urgente</option>
+          <option value="HIGH">Haute</option>
+          <option value="MEDIUM">Moyenne</option>
+          <option value="LOW">Faible</option>
         </select>
       </div>
 

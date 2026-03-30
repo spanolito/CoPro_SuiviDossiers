@@ -1,11 +1,14 @@
 import prisma from '@/lib/prisma'
-import { notifyAll } from '@/lib/notifications'
+import type { Intervenant, PrioriteDossier, TypeDossier, Utilisateur, ZoneCommune } from '@prisma/client'
 import styles from '../dossiers.module.css'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { hasPermission } from '@/lib/auth/rbac'
+import { requirePermission } from '@/lib/auth/server'
+import { getPriorityLabel } from '@/lib/dossier-constants'
+import { notifyDossierStakeholders, recordDossierEvent } from '@/lib/dossier-tracking'
 import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
-import { hasPermission, assertPermission } from '@/lib/auth/rbac'
 
 export default async function NewDossierPage() {
   const cookieStore = await cookies()
@@ -27,16 +30,13 @@ export default async function NewDossierPage() {
     const typeDossier = formData.get('typeDossier') as string
     const priorite = formData.get('priorite') as string
     const responsableCSId = formData.get('responsableCSId') as string
+    const assignedToId = formData.get('assignedToId') as string
     const prestatairePrincipalId = formData.get('prestatairePrincipalId') as string
     const syndicImpliqueId = formData.get('syndicImpliqueId') as string
     const zoneCommuneId = formData.get('zoneCommuneId') as string
     const precisionLocalisation = formData.get('precisionLocalisation') as string
 
-    const cookieStore = await cookies()
-    const token = cookieStore.get('auth_token')?.value
-    const payload = token ? await verifyToken(token) : null
-
-    assertPermission(payload?.role as string, 'dossier.create')
+    const payload = await requirePermission('dossier.create')
 
     const copro = await prisma.copropriete.findFirst()
     if (!copro) throw new Error('Copropriété non trouvée')
@@ -50,33 +50,24 @@ export default async function NewDossierPage() {
         reference,
         titre,
         description,
-        typeDossier: typeDossier as any,
-        priorite: priorite as any,
-        statut: 'ENREGISTRE',
-        responsableCSId: responsableCSId || (payload?.id as string),
-        createurUserId: payload?.id as string,
+        typeDossier: typeDossier as TypeDossier,
+        priorite: priorite as PrioriteDossier,
+        statut: 'OPEN',
+        responsableCSId: responsableCSId || (payload.id as string),
+        assignedToId: assignedToId || responsableCSId || (payload.id as string),
+        createurUserId: payload.id as string,
         prestatairePrincipalId: prestatairePrincipalId || null,
         syndicImpliqueId: syndicImpliqueId || null,
         zoneCommuneId: zoneCommuneId || null,
         precisionLocalisation: precisionLocalisation || null,
+        dateDerniereAction: new Date(),
       }
     })
 
-    // Trigger Critical Alert if created with priority CRITIQUE
-    if (priorite === 'CRITIQUE') {
+    if (priorite === 'URGENT') {
       const { notifyAdminCriticalDossier } = await import('@/lib/utils/notifications')
       await notifyAdminCriticalDossier({ titre, reference })
     }
-
-
-    await prisma.dossierActivite.create({
-      data: {
-        dossierId: newDossier.id,
-        userId: payload?.id as string,
-        typeAction: 'DOSSIER_CREE',
-        resume: `Dossier "${titre}" créé`,
-      }
-    })
 
     await prisma.dossierEtape.create({
       data: {
@@ -84,17 +75,34 @@ export default async function NewDossierPage() {
         titre: 'Création du dossier',
         typeEtape: 'CREATION',
         statutEtape: 'TERMINEE',
-        auteurUserId: payload?.id as string,
+        auteurUserId: payload.id as string,
         dateRealisation: new Date(),
       }
     })
 
-    // Notify users
-    await notifyAll(
-      `Nouveau dossier : ${titre}`,
-      `Un nouveau dossier "${titre}" a été ouvert (${reference}).`,
-      'DOSSIER_CREE'
-    )
+    await recordDossierEvent({
+      dossierId: newDossier.id,
+      userId: payload.id as string,
+      typeAction: 'DOSSIER_CREE',
+      resume: `Dossier "${titre}" créé`,
+      action: 'DOSSIER_CREATED',
+      metadata: {
+        reference,
+        titre,
+        status: 'OPEN',
+        priority: priorite,
+        assignedToId: newDossier.assignedToId,
+      },
+      updateLastAction: false,
+    })
+
+    await notifyDossierStakeholders({
+      dossier: newDossier,
+      title: `Nouveau dossier: ${titre}`,
+      message: `Le dossier ${reference} a été créé avec une priorité ${getPriorityLabel(priorite).toLowerCase()}.`,
+      type: 'DOSSIER_CREE',
+      link: `/dossiers/${newDossier.id}`,
+    })
 
     redirect(`/dossiers/${newDossier.id}`)
   }
@@ -130,10 +138,10 @@ export default async function NewDossierPage() {
           <div className="form-group">
             <label htmlFor="priorite">Priorité *</label>
             <select id="priorite" name="priorite" className="form-control" required>
-              <option value="MOYENNE">Moyenne</option>
-              <option value="BASSE">Basse</option>
-              <option value="HAUTE">Haute</option>
-              <option value="CRITIQUE">Critique</option>
+              <option value="MEDIUM">Moyenne</option>
+              <option value="LOW">Faible</option>
+              <option value="HIGH">Haute</option>
+              <option value="URGENT">Urgente</option>
             </select>
           </div>
           <div className="form-group" style={{ gridColumn: 'span 2' }}>
@@ -148,7 +156,7 @@ export default async function NewDossierPage() {
             <label htmlFor="zoneCommuneId">Zone commune concernée</label>
             <select id="zoneCommuneId" name="zoneCommuneId" className="form-control">
               <option value="">Aucune (lot privatif)</option>
-              {zonesCommunes.map((z: any) => <option key={z.id} value={z.id}>{z.nom}</option>)}
+              {zonesCommunes.map((z: ZoneCommune) => <option key={z.id} value={z.id}>{z.nom}</option>)}
             </select>
           </div>
           <div className="form-group">
@@ -163,21 +171,28 @@ export default async function NewDossierPage() {
             <label htmlFor="responsableCSId">Responsable CS *</label>
             <select id="responsableCSId" name="responsableCSId" className="form-control" required>
               <option value="">Sélectionner</option>
-              {users.map((u: any) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
+              {users.map((u: Pick<Utilisateur, 'id' | 'nomAffiche'>) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="assignedToId">Assigné à</label>
+            <select id="assignedToId" name="assignedToId" className="form-control">
+              <option value="">Même responsable que le CS</option>
+              {users.map((u: Pick<Utilisateur, 'id' | 'nomAffiche'>) => <option key={u.id} value={u.id}>{u.nomAffiche}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label htmlFor="prestatairePrincipalId">Prestataire principal</label>
             <select id="prestatairePrincipalId" name="prestatairePrincipalId" className="form-control">
               <option value="">Aucun</option>
-              {intervenants.filter((i: any) => i.type !== 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom} ({i.sousType || i.type})</option>)}
+              {intervenants.filter((i: Intervenant) => i.type !== 'SYNDIC').map((i: Intervenant) => <option key={i.id} value={i.id}>{i.nom} ({i.sousType || i.type})</option>)}
             </select>
           </div>
           <div className="form-group">
             <label htmlFor="syndicImpliqueId">Syndic impliqué</label>
             <select id="syndicImpliqueId" name="syndicImpliqueId" className="form-control">
               <option value="">Non</option>
-              {intervenants.filter((i: any) => i.type === 'SYNDIC').map((i: any) => <option key={i.id} value={i.id}>{i.nom}</option>)}
+              {intervenants.filter((i: Intervenant) => i.type === 'SYNDIC').map((i: Intervenant) => <option key={i.id} value={i.id}>{i.nom}</option>)}
             </select>
           </div>
         </div>
