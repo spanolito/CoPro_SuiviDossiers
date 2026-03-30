@@ -117,3 +117,44 @@ export async function deleteDossier(dossierId: string) {
 
   await prisma.dossier.delete({ where: { id: dossierId } })
 }
+
+export async function updateEtapeDate(dossierId: string, etapeId: string, newDateStr: string, reason: string | null) {
+  const payload = await requirePermission('dossier.step.add')
+
+  const etape = await prisma.dossierEtape.findUnique({ where: { id: etapeId } })
+  if (!etape) throw new Error('Étape introuvable')
+
+  const oldDate = etape.stepDate
+  const newDate = new Date(newDateStr)
+
+  await prisma.$transaction([
+    prisma.dossierEtapeHistory.create({
+      data: {
+        etapeId,
+        oldDate,
+        newDate,
+        reason,
+        changedById: payload.id as string
+      }
+    }),
+    prisma.dossierEtape.update({
+      where: { id: etapeId },
+      data: {
+        stepDate: newDate,
+        correctedAt: new Date(),
+        correctionReason: reason || undefined,
+        correctedById: payload.id as string
+      }
+    }),
+    prisma.dossierActivite.create({
+      data: {
+        dossierId,
+        userId: payload.id as string,
+        typeAction: 'ETAPE_MODIFIEE',
+        resume: `Date de l'étape "${etape.titre}" modifiée`
+      }
+    })
+  ])
+
+  revalidatePath(`/dossiers/${dossierId}`)
+}

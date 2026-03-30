@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import { verifyToken, signToken } from '@/lib/auth'
 
 function addSecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'DENY')
@@ -49,20 +49,41 @@ export async function middleware(request: NextRequest) {
     return addSecurityHeaders(response)
   }
 
-  // Add user info to headers for API routes
+  let response = NextResponse.next()
+
   if (path.startsWith('/api/')) {
     const requestHeaders = new Headers(request.headers)
     requestHeaders.set('x-user-id', payload.id as string)
     requestHeaders.set('x-user-role', payload.role as string)
     
-    return addSecurityHeaders(NextResponse.next({
+    response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
-    }))
+    })
   }
 
-  return addSecurityHeaders(NextResponse.next())
+  // Auto refresh session if remaining time is less than 12 hours
+  if (payload.exp && (payload.exp as number) - (Date.now() / 1000) < 12 * 60 * 60) {
+    const newToken = await signToken({
+      id: payload.id,
+      email: payload.email,
+      role: payload.role,
+      name: payload.name,
+    })
+    
+    response.cookies.set({
+      name: 'auth_token',
+      value: newToken,
+      httpOnly: true,
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24, // 1 day
+      sameSite: 'lax',
+    })
+  }
+
+  return addSecurityHeaders(response)
 }
 
 export const config = {

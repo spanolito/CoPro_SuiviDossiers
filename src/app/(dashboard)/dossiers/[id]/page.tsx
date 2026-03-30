@@ -9,6 +9,7 @@ import { cookies } from 'next/headers'
 import { verifyToken } from '@/lib/auth'
 import DossierActions from './DossierActions'
 import DossierStatusControls from './DossierStatusControls'
+import StepEditModal from './StepEditModal'
 import { getDossierCapabilities } from '@/lib/auth/rbac'
 import { requirePermission } from '@/lib/auth/server'
 
@@ -32,7 +33,12 @@ export default async function DossierDetailPage({
     responsableAction: true,
     coproprietaireConcerne: true,
     zoneCommune: true,
-    etapes: { orderBy: { createdAt: 'desc' } },
+    etapes: { 
+      orderBy: { stepDate: 'desc' },
+      include: {
+        historique: { orderBy: { changedAt: 'desc' }, include: { changedBy: true } }
+      }
+    },
     documents: { orderBy: { createdAt: 'desc' } },
   }
 
@@ -244,8 +250,26 @@ export default async function DossierDetailPage({
                     <div className={styles.timelineDot}></div>
                     <div className={styles.timelineContent}>
                       <div className={styles.timelineHeader}>
-                        <span className={styles.timelineTitle}>{etape.titre}</span>
-                        <span className={styles.timelineDate}>{formatDate(etape.createdAt)}</span>
+                        <span className={styles.timelineTitle}>
+                          {etape.titre}
+                          {etape.correctedAt && (
+                            <span title={`Corrigé le ${formatDate(etape.correctedAt)} par ${etape.historique?.[0]?.changedBy?.nomAffiche}. Motif: ${etape.correctionReason}`} style={{ marginLeft: 8, fontSize: 11, background: '#FFF3CD', color: '#856404', padding: '2px 6px', borderRadius: 4, cursor: 'help' }}>
+                              Date modifiée
+                            </span>
+                          )}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span className={styles.timelineDate}>{formatDate(etape.stepDate)}</span>
+                          {capabilities.canEdit && (
+                            <StepEditModal 
+                              dossierId={id} 
+                              etapeId={etape.id} 
+                              currentTitle={etape.titre} 
+                              currentDate={etape.stepDate} 
+                              currentReason={etape.correctionReason} 
+                            />
+                          )}
+                        </div>
                       </div>
                       {etape.description && <div className={styles.timelineComment}>{etape.description}</div>}
                       <span className="badge badge-normal" style={{ marginTop: 8 }}>{etape.statutEtape}</span>

@@ -402,6 +402,7 @@ model Utilisateur {
   notifications        Notification[]
   relancesAuteur       Relance[]
   auditLogs            AuditLog[]
+  historiqueEtapesModifiees DossierEtapeHistory[]
 
   @@index([coproprieteId])
   @@index([role])
@@ -598,6 +599,10 @@ model DossierEtape {
   statutEtape     StatutEtape @default(A_FAIRE)
   datePrevue      DateTime?
   dateRealisation DateTime?
+  stepDate        DateTime    @default(now())
+  correctedAt     DateTime?
+  correctionReason String?
+  correctedById   String?
   auteurUserId    String
   intervenantId   String?
   createdAt       DateTime    @default(now())
@@ -606,10 +611,27 @@ model DossierEtape {
   dossier     Dossier      @relation(fields: [dossierId], references: [id], onDelete: Cascade)
   auteur      Utilisateur  @relation(fields: [auteurUserId], references: [id], onDelete: Restrict)
   intervenant Intervenant? @relation(fields: [intervenantId], references: [id], onDelete: SetNull)
+  historique  DossierEtapeHistory[]
 
   @@index([dossierId])
   @@index([auteurUserId])
   @@index([intervenantId])
+}
+
+model DossierEtapeHistory {
+  id           String      @id @default(cuid())
+  etapeId      String
+  oldDate      DateTime
+  newDate      DateTime
+  reason       String?
+  changedById  String
+  changedAt    DateTime    @default(now())
+
+  etape        DossierEtape @relation(fields: [etapeId], references: [id], onDelete: Cascade)
+  changedBy    Utilisateur  @relation(fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([etapeId])
+  @@index([changedById])
 }
 
 model DossierActivite {
