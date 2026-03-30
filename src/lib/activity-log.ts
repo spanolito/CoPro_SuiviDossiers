@@ -10,13 +10,20 @@ type LogActivityInput = {
 }
 
 export async function logActivity(input: LogActivityInput) {
-  return prisma.activityLog.create({
-    data: {
-      userId: input.userId ?? null,
-      action: input.action,
-      entity: input.entity,
-      entityId: input.entityId ?? null,
-      metadata: input.metadata,
-    },
-  })
+  try {
+    // Non-blocking log creation
+    return prisma.activityLog.create({
+      data: {
+        userId: input.userId ?? null,
+        action: input.action,
+        entity: input.entity,
+        entityId: input.entityId ?? null,
+        metadata: input.metadata,
+      },
+    })
+  } catch (error) {
+    // Silent catch to ensure activity logging never blocks main business logic
+    console.error('[ActivityLog] Failed to log activity:', error)
+    return null
+  }
 }

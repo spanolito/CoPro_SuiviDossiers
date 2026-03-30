@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { getSessionCookieOptions, signToken } from '@/lib/auth'
+import { getSessionCookieOptions, signToken, SESSION_MAX_AGE } from '@/lib/auth'
 import { notifyAdmins } from '@/lib/notifications'
+import { logActivity } from '@/lib/activity-log'
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
       name: 'auth_token',
       value: token,
       ...getSessionCookieOptions(),
+      maxAge: SESSION_MAX_AGE,
     })
 
     // Update last login
@@ -68,6 +70,15 @@ export async function POST(request: NextRequest) {
         action: 'LOGIN',
         description: `Connexion réussie de ${user.nomAffiche}`,
       }
+    })
+
+    // Also Log system activity for dashboard visibility
+    await logActivity({
+      userId: user.id,
+      action: 'LOGIN',
+      entity: 'USER',
+      entityId: user.id,
+      metadata: { name: user.nomAffiche }
     })
 
     // Notify admin

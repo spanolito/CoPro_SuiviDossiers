@@ -18,30 +18,40 @@ type BroadcastInput = {
 }
 
 export async function createNotification(input: CreateNotificationInput) {
-  return prisma.notification.create({
-    data: {
-      userId: input.userId,
-      type: input.type ?? 'LOG_SYSTEME',
-      titre: input.title,
-      message: input.message,
-      lien: input.link ?? null,
-    },
-  })
+  try {
+    return prisma.notification.create({
+      data: {
+        userId: input.userId,
+        type: input.type ?? 'LOG_SYSTEME',
+        titre: input.title,
+        message: input.message,
+        lien: input.link ?? null,
+      },
+    })
+  } catch (error) {
+    console.error('[Notification] Failed to create notification:', error)
+    return null
+  }
 }
 
 export async function createNotifications(input: BroadcastInput) {
-  const userIds = Array.from(new Set(input.userIds.filter(Boolean)))
-  if (userIds.length === 0) return { count: 0 }
+  try {
+    const userIds = Array.from(new Set(input.userIds.filter(Boolean)))
+    if (userIds.length === 0) return { count: 0 }
 
-  return prisma.notification.createMany({
-    data: userIds.map((userId) => ({
-      userId,
-      type: input.type ?? 'LOG_SYSTEME',
-      titre: input.title,
-      message: input.message,
-      lien: input.link ?? null,
-    })),
-  })
+    return prisma.notification.createMany({
+      data: userIds.map((userId) => ({
+        userId,
+        type: input.type ?? 'LOG_SYSTEME',
+        titre: input.title,
+        message: input.message,
+        lien: input.link ?? null,
+      })),
+    })
+  } catch (error) {
+    console.error('[Notification] Failed to create bulk notifications:', error)
+    return { count: 0 }
+  }
 }
 
 export async function getNotificationsForUser(userId: string, take = 20) {
