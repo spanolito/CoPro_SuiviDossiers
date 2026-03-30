@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   const inactivityThreshold = 7
   const [dossiers, users, intervenants, activityLogs] = await Promise.all([
     prisma.dossier.findMany({
-      include: { responsableCS: true, assignedTo: true, prestatairePrincipal: true, syndicImplique: true },
+      include: { responsableCS: true, assigneA: true, prestatairePrincipal: true, syndicImplique: true },
       where: { archived: false }
     }),
     prisma.utilisateur.findMany({
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
                       </td>
                       <td data-label="Responsable">
                         <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'inline-block', maxWidth: '140px' }}>
-                          {d.assignedTo?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
+                          {d.assigneA?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
                         </span>
                       </td>
                       <td data-label="Échéance">

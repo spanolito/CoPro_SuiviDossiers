@@ -55,7 +55,7 @@ export default async function DossierDetailPage({
 
   const includeParams: Prisma.DossierInclude = {
     responsableCS: true,
-    assignedTo: true,
+    assigneA: true,
     prestatairePrincipal: true,
     syndicImplique: true,
     responsableAction: true,
@@ -266,7 +266,7 @@ export default async function DossierDetailPage({
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Assigné à</span>
                 <span className={styles.infoValue} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color="var(--text-secondary)" /> {dossier.assignedTo?.nomAffiche || dossier.responsableCS?.nomAffiche || 'Non assigné'}
+                  <User size={16} color="var(--text-secondary)" /> {dossier.assigneA?.nomAffiche || dossier.responsableCS?.nomAffiche || 'Non assigné'}
                 </span>
               </div>
               <div className={styles.infoItem}>

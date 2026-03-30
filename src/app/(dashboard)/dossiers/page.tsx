@@ -47,7 +47,7 @@ export default async function DossiersListPage({
 
   const dossiers = await prisma.dossier.findMany({
     where: whereClause,
-    include: { responsableCS: true, assignedTo: true, prestatairePrincipal: true, syndicImplique: true, responsableAction: true },
+    include: { responsableCS: true, assigneA: true, prestatairePrincipal: true, syndicImplique: true, responsableAction: true },
     orderBy: { updatedAt: 'desc' }
   })
 
@@ -126,7 +126,7 @@ export default async function DossiersListPage({
                   </div>
                 </td>
               </tr>
-            ) : dossiers.map((d: Dossier & { assignedTo: { nomAffiche: string } | null; responsableCS: { nomAffiche: string } | null; prestatairePrincipal: { nom: string } | null; syndicImplique: { nom: string } | null; responsableAction: { nom: string } | null }) => (
+            ) : dossiers.map((d: Dossier & { assigneA: { nomAffiche: string } | null; responsableCS: { nomAffiche: string } | null; prestatairePrincipal: { nom: string } | null; syndicImplique: { nom: string } | null; responsableAction: { nom: string } | null }) => (
               <tr key={d.id} style={{ cursor: 'pointer' }}>
                 <td data-label="Réf.">
                   <Link href={`/dossiers/${d.id}`} className={styles.linkCell} style={{ fontWeight: 600 }}>
@@ -164,7 +164,7 @@ export default async function DossiersListPage({
                 <td data-label="Responsable">
                   <Link href={`/dossiers/${d.id}`} className={styles.linkCell}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {d.assignedTo?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
+                      {d.assigneA?.nomAffiche || d.responsableCS?.nomAffiche || '-'}
                     </div>
                   </Link>
                 </td>

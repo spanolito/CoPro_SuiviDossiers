@@ -406,7 +406,7 @@ model Utilisateur {
 
   dossiersCrees        Dossier[]            @relation("DossierCreateur")
   dossiersResponsableCS Dossier[]           @relation("DossierResponsableCS")
-  dossiersAssigned     Dossier[]            @relation("DossierAssignee")
+  dossiersAssignes      Dossier[]           @relation("DossierAssignee")
   dossiersValides      Dossier[]            @relation("DossierValidateurFinal")
   dossiersClotures     Dossier[]            @relation("DossierCloturePar")
   dossiersArchives     Dossier[]            @relation("DossierArchivePar")
@@ -555,7 +555,7 @@ model Dossier {
   copropriete          Copropriete    @relation(fields: [coproprieteId], references: [id], onDelete: Cascade)
   createur             Utilisateur    @relation("DossierCreateur", fields: [createurUserId], references: [id], onDelete: Restrict)
   responsableCS        Utilisateur    @relation("DossierResponsableCS", fields: [responsableCSId], references: [id], onDelete: Restrict)
-  assignedTo           Utilisateur?   @relation("DossierAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assigneA             Utilisateur?   @relation("DossierAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   validateurFinal      Utilisateur?   @relation("DossierValidateurFinal", fields: [validateurFinalId], references: [id], onDelete: SetNull)
   cloturePar           Utilisateur?   @relation("DossierCloturePar", fields: [clotureParUserId], references: [id], onDelete: SetNull)
   archivePar           Utilisateur?   @relation("DossierArchivePar", fields: [archivedById], references: [id], onDelete: SetNull)
