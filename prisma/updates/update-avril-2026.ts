@@ -49,6 +49,12 @@ async function main() {
       statutEtape: 'TERMINEE',
       dateRealisation: new Date('2026-03-31'),
     },
+    {
+      titre: 'Visite SAPITEC – recherche de fuite caves (avril 2026)',
+      typeEtape: 'VISITE',
+      statutEtape: 'TERMINEE',
+      description: 'RDV confirmé par M. Andujar. Compte rendu d\'intervention à réceptionner.',
+    },
   ])
 
   // ─── DOS-03 : Porte de garage – statut BLOQUE → EN_COURS ───
@@ -99,9 +105,16 @@ async function main() {
     {
       titre: 'Relance Pichet pour date intervention VMC (21/04/2026)',
       typeEtape: 'RELANCE',
-      statutEtape: 'EN_ATTENTE',
-      description: 'M. Andujar relance Pichet. Pas de date confirmée à ce jour.',
+      statutEtape: 'TERMINEE',
+      description: 'M. Andujar relance Pichet. Date obtenue.',
       dateRealisation: new Date('2026-04-21'),
+    },
+    {
+      titre: 'Intervention AirForming – remplacement moteur VMC réalisé (27/04/2026)',
+      typeEtape: 'INTERVENTION_REALISEE',
+      statutEtape: 'TERMINEE',
+      description: 'AirForming intervient sur site le 27/04/2026. Remplacement moteur VMC effectué. Compte rendu à réceptionner.',
+      dateRealisation: new Date('2026-04-27'),
     },
   ])
 
@@ -127,10 +140,16 @@ async function main() {
       dateRealisation: new Date('2026-04-14'),
     },
     {
-      titre: 'Devis validé par M. Andujar et Pichet (14/04/2026) – intervention à planifier',
+      titre: 'Devis validé par M. Andujar et Pichet (14/04/2026)',
       typeEtape: 'DEVIS_VALIDE',
-      statutEtape: 'EN_ATTENTE',
+      statutEtape: 'TERMINEE',
       dateRealisation: new Date('2026-04-14'),
+    },
+    {
+      titre: 'Intervention GCCLAIMS – pose capteur crépusculaire (avril 2026)',
+      typeEtape: 'INTERVENTION_REALISEE',
+      statutEtape: 'TERMINEE',
+      description: 'RDV tenu avec Marc Niedziela (GCCLAIMS). Capteur crépusculaire posé sur façade. Compte rendu à réceptionner.',
     },
   ])
 

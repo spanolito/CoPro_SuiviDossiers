@@ -40,21 +40,22 @@ Les infiltrations dans les caves persistent. Un rapport daté du 31/03/2026 indi
 
 **Dates importantes**
 - 31/03/2026 : Rapport : humidité cave M. Conforto persistante, origine non trouvée
+- Avril 2026 : Visite SAPITEC caves confirmée par M. Andujar
 
 **Personnes / sociétés concernées**
 - M. Lionel Conforto (cave concernée)
 - M. Oscar Andujar
+- SAPITEC (recherche de fuite caves)
 
 **Actions à faire**
-- Identifier l'origine de l'humidité (recherche de fuite à relancer si nécessaire)
-- Décider des suites selon les résultats
+- Réceptionner le compte rendu de la visite SAPITEC caves
+- Décider des suites selon les conclusions
 
 **Statut recommandé** : EN_COURS – HAUTE
 
 **Mise à jour dans l'application**
 - Ajouter étape : "Rapport 31/03/2026 : humidité cave Conforto persistante, origine non identifiée" (REPONSE_RECUE, TERMINEE)
-
-> **Note calendrier** : le RDV SAPITEC du 02/04/2026 intitulé "SAPITEC (Local Ordures)" concerne DOS-06, pas ce dossier.
+- Ajouter étape : "Visite SAPITEC – recherche de fuite caves (avril 2026)" (VISITE, TERMINEE)
 
 ---
 
@@ -113,12 +114,13 @@ Pas de nouveaux éléments significatifs dans les échanges de mars-avril 2026. 
 ## DOS-05 – VMC – dysfonctionnement
 
 **Résumé factuel**
-AirForming (E2S) a produit un rapport le 26/03/2026 indiquant que le moteur VMC est défaillant et doit être remplacé. Pichet valide le devis (référence OSTW397912) le 14/04/2026. M. Andujar relance Pichet le 21/04/2026 pour obtenir une date d'intervention. Dossier actif, plus en simple affectation.
+AirForming (E2S) a produit un rapport le 26/03/2026 indiquant que le moteur VMC est défaillant et doit être remplacé. Pichet valide le devis (référence OSTW397912) le 14/04/2026. M. Andujar relance Pichet le 21/04/2026. AirForming intervient sur site le 27/04/2026 et remplace le moteur VMC.
 
 **Dates importantes**
 - 26/03/2026 : Rapport AirForming – remplacement moteur VMC nécessaire
 - 14/04/2026 : Devis validé par Pichet (ref. OSTW397912)
 - 21/04/2026 : Relance M. Andujar → Pichet pour date intervention
+- **27/04/2026 : Intervention AirForming – moteur VMC remplacé**
 
 **Personnes / sociétés concernées**
 - M. Oscar Andujar
@@ -126,16 +128,17 @@ AirForming (E2S) a produit un rapport le 26/03/2026 indiquant que le moteur VMC 
 - Pichet / Aurélie Grillet (syndic, validation devis)
 
 **Actions à faire**
-- Obtenir date d'intervention de la part de Pichet / AirForming
-- Relancer si pas de retour d'ici fin avril 2026
+- Réceptionner le compte rendu d'intervention AirForming
+- Vérifier le bon fonctionnement de la VMC dans tous les appartements concernés
 
-**Statut recommandé** : EN_COURS – MOYENNE (passer de AFFECTE à EN_COURS)
+**Statut recommandé** : A_VALIDER – MOYENNE (intervention réalisée le 27/04/2026)
 
 **Mise à jour dans l'application**
 - Mettre à jour statut : AFFECTE → EN_COURS
 - Ajouter étape : "Rapport AirForming 26/03/2026 – remplacement moteur VMC nécessaire" (REPONSE_RECUE, TERMINEE)
 - Ajouter étape : "Devis moteur validé par Pichet (14/04/2026 – ref. OSTW397912)" (DEVIS_VALIDE, TERMINEE)
-- Ajouter étape : "Relance Pichet pour date intervention (21/04/2026)" (RELANCE, EN_ATTENTE)
+- Ajouter étape : "Relance Pichet pour date intervention (21/04/2026)" (RELANCE, TERMINEE)
+- Ajouter étape : "Intervention AirForming – remplacement moteur VMC réalisé (27/04/2026)" (INTERVENTION_REALISEE, TERMINEE)
 
 ---
 
@@ -175,26 +178,28 @@ Dossier archivé. Aucun élément nouveau dans les échanges.
 ## DOS-08 – Éclairage de façade
 
 **Résumé factuel**
-Marc Niedziela (GCCLAIMS) soumet un devis pour le capteur crépusculaire le 14/04/2026 (référence OSTW397910). Le devis est validé le même jour par M. Andujar et par Pichet. Intervention à planifier.
+Marc Niedziela (GCCLAIMS) soumet un devis pour le capteur crépusculaire le 14/04/2026 (référence OSTW397910). Le devis est validé le même jour par M. Andujar et Pichet. Un rendez-vous d'intervention est ensuite tenu avec Marc Niedziela pour la pose du capteur crépusculaire.
 
 **Dates importantes**
-- 14/04/2026 : Devis GCCLAIMS soumis (ref. OSTW397910)
-- 14/04/2026 : Devis validé par M. Andujar et Pichet
+- 14/04/2026 : Devis GCCLAIMS soumis (ref. OSTW397910) et validé
+- Avril 2026 : Intervention GCCLAIMS – pose capteur crépusculaire réalisée
 
 **Personnes / sociétés concernées**
 - M. Oscar Andujar
-- Marc Niedziela / GCCLAIMS (prestataire électricité)
-- Pichet / Aurélie Grillet (validation)
+- Marc Niedziela / GCCLAIMS (intervention électricité façade)
+- Pichet / Aurélie Grillet (validation devis)
 - M. Lionel Conforto (responsable CS du dossier)
 
 **Actions à faire**
-- Planifier la date d'intervention pour pose du capteur crépusculaire
+- Réceptionner le compte rendu d'intervention GCCLAIMS
+- Vérifier le bon fonctionnement du capteur crépusculaire
 
-**Statut recommandé** : EN_COURS – BASSE (inchangé)
+**Statut recommandé** : A_VALIDER – BASSE (intervention réalisée)
 
 **Mise à jour dans l'application**
 - Ajouter étape : "Devis GCCLAIMS capteur crépusculaire soumis (14/04/2026 – ref. OSTW397910)" (DEVIS_DEMANDE, TERMINEE)
-- Ajouter étape : "Devis validé par M. Andujar et Pichet (14/04/2026)" (DEVIS_VALIDE, EN_ATTENTE)
+- Ajouter étape : "Devis validé par M. Andujar et Pichet (14/04/2026)" (DEVIS_VALIDE, TERMINEE)
+- Ajouter étape : "Intervention GCCLAIMS – pose capteur crépusculaire réalisée (avril 2026)" (INTERVENTION_REALISEE, TERMINEE)
 
 ---
 
