@@ -54,6 +54,7 @@ enum TypeLocalisation {
   EQUIPEMENT_TECHNIQUE
   EXTERIEUR
   SOUS_SOL_GARAGE
+  TOITURE
 }
 
 enum TypeIntervenant {
