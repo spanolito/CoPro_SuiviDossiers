@@ -201,7 +201,13 @@ async function main() {
     { id: 'int-gex', nom: 'GEX MULTISERVICES', type: 'PRESTATAIRE' as const, sousType: 'Travaux + Espaces verts' },
     { id: 'int-walterre', nom: 'WALTERRE', type: 'EXPERT' as const, sousType: 'Audit chaufferie' },
     { id: 'int-chazelle', nom: 'Cabinet CHAZELLE / Me GEOFFRAY', type: 'AVOCAT' as const, sousType: 'Dossier FONCIA' },
-    { id: 'int-persea', nom: 'Cabinet PERSEA', type: 'AVOCAT' as const, sousType: 'Contentieux' }
+    { id: 'int-persea', nom: 'Cabinet PERSEA', type: 'AVOCAT' as const, sousType: 'Contentieux' },
+    // Nouveaux intervenants – avril 2026
+    { id: 'int-gcclaims', nom: 'GCCLAIMS', type: 'PRESTATAIRE' as const, sousType: 'Électricité / Éclairage', contactPrincipal: 'Marc Niedziela', email: 'mniedziela@gcclaims.fr', contactRole: 'TECHNICIAN', notes: 'Dévis capteur crépusculaire façade (ref. OSTW397910)' },
+    { id: 'int-lpe', nom: 'SARL LPE', type: 'PRESTATAIRE' as const, sousType: 'Étanchéité / Toiture', adresse: '125 Route des Creuses, 74650 Chavanod', contactPrincipal: 'Pierre-Emmanuel Labeaune', email: 'contact@sarl-lpe.fr', contactRole: 'TECHNICIAN', notes: 'Intervention toiture appartement Beni – test fumigène 02/04/2026' },
+    { id: 'int-groupama', nom: 'Groupama Grand Est', type: 'ASSURANCE' as const, sousType: 'Assurance personnelle', contactRole: 'GENERAL', notes: 'Assurance personnelle M. Andujar – contrat 73078057D-230 – sinistre ref. 2026012366' },
+    { id: 'int-elex', nom: 'ELEX ANNECY', type: 'EXPERT' as const, sousType: 'Expertise dégâts des eaux', adresse: '84 route de Vieran, 74371 Pringy Cedex', telephone: '0450235731', contactRole: 'EXPERT', notes: 'Expert mandaté sinistre DDE appartement Andujar' },
+    { id: 'int-hydrosolutions', nom: 'HydroSolutions', type: 'PRESTATAIRE' as const, sousType: 'Recherche de fuite', contactRole: 'TECHNICIAN', notes: 'Recherche de fuite' },
   ]
   for (const i of intervenantsData) {
     await prisma.intervenant.upsert({
@@ -215,6 +221,7 @@ async function main() {
         sousType: i.sousType,
         adresse: (i as any).adresse || null,
         telephone: (i as any).telephone || null,
+        email: (i as any).email || null,
         contactPrincipal: (i as any).contactPrincipal || null,
         contactRole: (i as any).contactRole || null,
         notes: (i as any).notes || null,
@@ -353,6 +360,43 @@ async function main() {
       prestatairePrincipalId: 'int-chazelle',
       responsableActionId: 'int-chazelle',
     },
+    // ── Nouveaux dossiers – avril 2026 ──
+    {
+      id: 'dos-13', reference: 'DOS-2026-0013',
+      titre: 'Fuite toiture – appartement Mme Beni',
+      description: 'Infiltration depuis la toiture constatée (cloques plafond). Altiscience mandatée, LPE intervient le 02/04/2026 (test fumigène, 5 cm eau sous étanchéité, joint réparé). Devis complémentaire LPE validé le 15/04/2026.',
+      typeDossier: 'SINISTRE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: catia, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      prestatairePrincipalId: 'int-lpe',
+      coproprietaireConcerneId: 'cp-catia',
+      zoneCommuneId: 'zc-toiture',
+      typeLocalisation: 'TOITURE' as const,
+    },
+    {
+      id: 'dos-14', reference: 'DOS-2026-0014',
+      titre: 'Remplacement chaudière collective – horizon 2027',
+      description: 'Chaudière surdimensionnée et vieillissante identifiée par le rapport Walterre. Remplacement à planifier à l\'horizon 2027, sujet évoqué en AG 2026, votation des copropriétaires nécessaire.',
+      typeDossier: 'CHAUFFAGE' as const, statut: 'EN_COURS' as const, priorite: 'BASSE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      prestatairePrincipalId: 'int-engie',
+      zoneCommuneId: 'zc-chaufferie',
+      typeLocalisation: 'EQUIPEMENT_TECHNIQUE' as const,
+      typeInstallation: 'Chaudière collective gaz',
+    },
+    {
+      id: 'dos-15', reference: 'DOS-2026-0015',
+      titre: 'Dégâts des eaux – appartement M. Andujar',
+      description: 'Fuite arrivée/retour eau chaude dans l\'armoire d\'entrée le 02/03/2026, plancher soulevé. Sinistre déclaré GROUPAMA (ref. 2026012366). Expert ELEX ANNECY mandaté. Grillet informe assurance immeuble le 20/04/2026. Attente constat DDE et facture suppression cause.',
+      typeDossier: 'SINISTRE' as const, statut: 'EN_COURS' as const, priorite: 'HAUTE' as const,
+      responsableCSId: oscar, createurUserId: oscar,
+      syndicImpliqueId: 'int-pichet',
+      prestatairePrincipalId: 'int-elex',
+      responsableActionId: 'int-groupama',
+      coproprietaireConcerneId: 'cp-oscar',
+      typeLocalisation: 'APPARTEMENT_PRIVATIF' as const,
+    },
   ]
 
   for (const d of dossiersData) {
@@ -490,6 +534,36 @@ async function main() {
         { titre: 'Honoraires amiables 600 € – à suivre', typeEtape: 'DECISION', statutEtape: 'EN_ATTENTE', description: 'Aucun projet d\'assignation à ce stade' },
       ],
     },
+    // ── Nouveaux dossiers – avril 2026 ──
+    {
+      dossierId: 'dos-13',
+      etapes: [
+        { titre: 'Cloques plafond constatées – signalement Mme Beni', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Altiscience mandatée pour recherche fuite toiture', typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE' },
+        { titre: 'LPE intervient – test fumigène, 5 cm eau sous étanchéité, joint réparé (02/04/2026)', typeEtape: 'INTERVENTION_REALISEE', statutEtape: 'TERMINEE', description: 'Pierre-Emmanuel Labeaune – SARL LPE' },
+        { titre: 'Devis complémentaire LPE soumis (09/04/2026)', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'TERMINEE' },
+        { titre: 'Devis LPE validé (15/04/2026) – intervention complémentaire à planifier', typeEtape: 'DEVIS_VALIDE', statutEtape: 'EN_ATTENTE' },
+      ],
+    },
+    {
+      dossierId: 'dos-14',
+      etapes: [
+        { titre: 'Diagnostic Walterre – chaudière surdimensionnée et vieillissante identifiée', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Sujet évoqué en AG 2026 – votation nécessaire', typeEtape: 'DECISION', statutEtape: 'TERMINEE' },
+        { titre: 'Remplacement planifié à l\'horizon 2027 – devis à obtenir', typeEtape: 'DEVIS_DEMANDE', statutEtape: 'A_FAIRE' },
+      ],
+    },
+    {
+      dossierId: 'dos-15',
+      etapes: [
+        { titre: 'Fuite arrivée/retour eau chaude – armoire entrée, plancher soulevé (02/03/2026)', typeEtape: 'CREATION', statutEtape: 'TERMINEE' },
+        { titre: 'Sinistre déclaré assurance personnelle GROUPAMA (ref. 2026012366)', typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE' },
+        { titre: 'Expert ELEX ANNECY mandaté', typeEtape: 'VISITE', statutEtape: 'TERMINEE' },
+        { titre: 'Grillet (Pichet) informe assurance immeuble (20/04/2026)', typeEtape: 'RELANCE', statutEtape: 'TERMINEE' },
+        { titre: 'Attente constat DDE de l\'expert ELEX', typeEtape: 'REPONSE_RECUE', statutEtape: 'EN_ATTENTE' },
+        { titre: 'Attente facture de suppression de cause', typeEtape: 'REPONSE_RECUE', statutEtape: 'A_FAIRE' },
+      ],
+    },
   ]
 
   for (const group of etapesParDossier) {
@@ -530,8 +604,8 @@ async function main() {
   console.log('   → 1 copropriété, 1 bâtiment, 4 niveaux')
   console.log('   → 12 lots, 13 zones communes')
   console.log('   → 12 utilisateurs (5 CS + 7 copropriétaires)')
-  console.log('   → 9 intervenants')
-  console.log('   → 12 dossiers avec étapes et historique')
+  console.log('   → 29 intervenants (dont 5 ajoutés avril 2026)')
+  console.log('   → 15 dossiers avec étapes et historique (dont 3 créés avril 2026)')
   console.log('')
   console.log('🔑 Connexion admin : oscar@copro-ambassadeur.fr / password123')
 }
