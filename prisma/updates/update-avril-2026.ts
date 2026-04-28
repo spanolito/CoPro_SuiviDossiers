@@ -3,8 +3,10 @@
  * Période : mars–avril 2026
  * Source   : Compte rendu mars 2026 + échanges de mails avril 2026
  *
- * Ce script ajoute les nouvelles étapes sur les dossiers existants DOS-01 à DOS-11
- * et met à jour les statuts de DOS-03 et DOS-05.
+ * Ce script ajoute les nouvelles étapes sur les dossiers DOS-01 à DOS-11,
+ * crée les intervenants LPE / ELEX / Groupama, et crée les dossiers DOS-13 à DOS-15
+ * (fuite toiture, remplacement chaudière, DDE Andujar) avec leurs étapes.
+ * Met également à jour les statuts de DOS-03 et DOS-05.
  *
  * Usage : npx ts-node prisma/updates/update-avril-2026.ts
  */
@@ -214,6 +216,133 @@ async function main() {
       typeEtape: 'RELANCE',
       statutEtape: 'EN_ATTENTE',
       description: 'Demande non encore satisfaite. Réponse Pichet attendue.',
+    },
+  ])
+
+  // ─── Intervenants manquants (LPE, ELEX, Groupama) ───
+  const coproprieteId = 'copro-ambassadeur'
+  for (const iv of [
+    {
+      id: 'int-lpe', nom: 'SARL LPE', type: 'PRESTATAIRE', sousType: 'Étanchéité / Toiture',
+      adresse: '125 Route des Creuses, 74650 Chavanod',
+      contactPrincipal: 'Pierre-Emmanuel Labeaune',
+      email: 'contact@sarl-lpe.fr', telephone: '0788985652',
+      contactRole: 'TECHNICIAN',
+      notes: 'Intervention toiture – test fumigène 02/04/2026',
+    },
+    {
+      id: 'int-elex', nom: 'ELEX ANNECY', type: 'EXPERT', sousType: 'Expertise dégâts des eaux',
+      adresse: '84 route de Vieran, 74371 Pringy Cedex',
+      telephone: '0450235731',
+      contactRole: 'EXPERT',
+      notes: 'Expert mandaté sinistre DDE Andujar – ref. 2026012366',
+    },
+    {
+      id: 'int-groupama', nom: 'Groupama Grand Est', type: 'ASSURANCE', sousType: 'Assurance personnelle',
+      contactRole: 'GENERAL',
+      notes: 'Assurance personnelle M. Andujar – contrat 73078057D-230 – ref. 2026012366',
+    },
+  ] as any[]) {
+    await prisma.intervenant.upsert({
+      where: { id: iv.id },
+      update: {},
+      create: { ...iv, coproprieteId },
+    })
+    console.log(`   ✓ Intervenant ${iv.id} créé/vérifié`)
+  }
+
+  // ─── DOS-2026-0014 "Fuite Toit" (ID réel : cmncrkj0c0001l204jvimve8x) ───
+  // Dossier existant créé dans l'app. On ajoute les étapes manquantes (devis + validation).
+  const idFuiteToiture = 'cmncrkj0c0001l204jvimve8x'
+  await prisma.dossier.update({
+    where: { id: idFuiteToiture },
+    data: {
+      titre: 'Fuite toiture – appartement Mme Beni',
+      description: 'Infiltration depuis la toiture (cloques plafond). Altiscience mandatée. LPE intervient le 02/04/2026 : test fumigène, 5 cm eau sous étanchéité, joint réparé. Devis complémentaire LPE validé le 15/04/2026.',
+      prestatairePrincipalId: 'int-lpe',
+    },
+  })
+  await addEtapes(idFuiteToiture, [
+    {
+      titre: 'Devis complémentaire LPE soumis par Pichet (09/04/2026 – réf. DEV260544)',
+      typeEtape: 'DEVIS_DEMANDE', statutEtape: 'TERMINEE',
+      description: 'Chiffrage LPE transmis au CS. Validation tacite demandée avant le 13/04/2026.',
+      dateRealisation: new Date('2026-04-09'),
+    },
+    {
+      titre: 'Devis LPE validé et signé par Pichet (15/04/2026)',
+      typeEtape: 'DEVIS_VALIDE', statutEtape: 'EN_ATTENTE',
+      description: 'Document signé : LPE-SINISTRESBENI-SIGNE.pdf. Intervention complémentaire (pompage eau sous étanchéité) à planifier.',
+      dateRealisation: new Date('2026-04-15'),
+    },
+  ])
+  console.log('   ✓ Fuite toiture (cmncrkj0c) – étapes devis ajoutées')
+
+  // ─── DOS-2026-0016 : Dégâts des eaux – appartement M. Andujar (nouveau) ───
+  const dosDDE = await prisma.dossier.upsert({
+    where: { reference: 'DOS-2026-0016' },
+    update: {},
+    create: {
+      coproprieteId,
+      batimentId: 'bat-ambassadeur',
+      reference: 'DOS-2026-0016',
+      titre: 'Dégâts des eaux – appartement M. Andujar',
+      description: 'Fuite arrivée/retour eau chaude dans l\'armoire d\'entrée le 02/03/2026, plancher soulevé. Sinistre déclaré GROUPAMA (ref. 2026012366). Expert ELEX ANNECY mandaté. Grillet informe assurance immeuble le 20/04/2026. Attente constat DDE et facture suppression cause.',
+      typeDossier: 'SINISTRE',
+      statut: 'EN_COURS',
+      priorite: 'HAUTE',
+      responsableCSId: AUTEUR,
+      createurUserId: AUTEUR,
+      syndicImpliqueId: 'int-pichet',
+      prestatairePrincipalId: 'int-elex',
+      responsableActionId: 'int-groupama',
+      coproprietaireConcerneId: 'cp-oscar',
+      typeLocalisation: 'APPARTEMENT_PRIVATIF',
+    },
+  })
+  console.log(`   ✓ DOS-2026-0016 DDE Andujar créé (id: ${dosDDE.id})`)
+  await addEtapes(dosDDE.id, [
+    {
+      titre: 'Fuite arrivée/retour eau chaude – armoire entrée appartement, plancher soulevé (02/03/2026)',
+      typeEtape: 'CREATION', statutEtape: 'TERMINEE',
+      description: 'Tuyaux visibles dans l\'armoire d\'entrée. Dépôt de calcaire dans les raccords.',
+      dateRealisation: new Date('2026-03-02'),
+    },
+    {
+      titre: 'Sinistre déclaré – GROUPAMA Grand Est (ref. 2026012366, contrat 73078057D-230)',
+      typeEtape: 'AFFECTATION', statutEtape: 'TERMINEE',
+    },
+    {
+      titre: 'Expert ELEX ANNECY mandaté par assurance (04 50 23 57 31 – Pringy)',
+      typeEtape: 'VISITE', statutEtape: 'TERMINEE',
+      description: '84 route de Vieran, 74371 Pringy Cedex. Mission expertise DDE.',
+    },
+    {
+      titre: 'Convocation expertise reçue par Pichet – Grillet demande détails à M. Andujar (17/04/2026)',
+      typeEtape: 'REPONSE_RECUE', statutEtape: 'TERMINEE',
+      description: 'Pichet découvre le sinistre via convocation ASSURIMO / GROUPAMA. Grillet demande précisions à M. Andujar.',
+      dateRealisation: new Date('2026-04-17'),
+    },
+    {
+      titre: 'M. Andujar explique : fuite localisée dans l\'appartement, tuyaux armoire entrée (20/04/2026)',
+      typeEtape: 'RELANCE', statutEtape: 'TERMINEE',
+      description: 'Fuite sur arrivée/retour eau chaude dans armoire entrée. Plancher soulevé. Assurances personnelle et immeuble à coordonner.',
+      dateRealisation: new Date('2026-04-20'),
+    },
+    {
+      titre: 'Pichet (Grillet) transmet à l\'assurance immeuble (Assurimo) (20/04/2026)',
+      typeEtape: 'RELANCE', statutEtape: 'TERMINEE',
+      dateRealisation: new Date('2026-04-20'),
+    },
+    {
+      titre: 'Attente CONSTAT DDE signé des deux parties',
+      typeEtape: 'REPONSE_RECUE', statutEtape: 'EN_ATTENTE',
+      description: 'Document demandé par ASSURIMO / GROUPAMA. Nécessaire pour prise en charge sinistre.',
+    },
+    {
+      titre: 'Attente facture de suppression de cause',
+      typeEtape: 'REPONSE_RECUE', statutEtape: 'A_FAIRE',
+      description: 'Facture à fournir à l\'assurance pour clôturer la prise en charge.',
     },
   ])
 
